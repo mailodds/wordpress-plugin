@@ -1,0 +1,24 @@
+/**
+ * MailOdds admin styles.
+ */
+
+.mailodds-test-badge {
+	display: inline-block;
+	background: #fcf0e3;
+	border: 1px solid #dba617;
+	color: #996800;
+	padding: 6px 14px;
+	border-radius: 4px;
+	font-weight: 600;
+	font-size: 13px;
+	margin-bottom: 12px;
+}
+
+.mailodds-bulk-summary .mailodds-card {
+	min-width: 120px;
+	text-align: center;
+}
+
+#mailodds-bulk-progress {
+	max-width: 600px;
+}
