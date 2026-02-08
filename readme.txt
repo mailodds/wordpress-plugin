@@ -4,7 +4,7 @@ Tags: email validation, email verification, spam prevention, WooCommerce, regist
 Requires at least: 5.9
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -123,6 +123,12 @@ One credit per unique email validation. Cached results and test mode do not cons
 
 == Changelog ==
 
+= 1.0.1 =
+* Added screenshot descriptions for wordpress.org directory
+* Added FAQ entry for WooCommerce-free usage
+* Aligned API response handling with flat response format
+* Added 67 unit tests, 20 integration tests, and GitHub Actions CI
+
 = 1.0.0 =
 * Initial release
 * WordPress registration validation
@@ -137,6 +143,9 @@ One credit per unique email validation. Cached results and test mode do not cons
 * Transient-based caching
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Test suite, CI pipeline, and flat API response alignment.
 
 = 1.0.0 =
 Initial release.

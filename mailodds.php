@@ -3,7 +3,7 @@
  * Plugin Name: MailOdds Email Validation
  * Plugin URI:  https://mailodds.com/integrations/wordpress
  * Description: Validate emails on registration, checkout, and contact forms using the MailOdds API. Blocks fake signups, disposable emails, and invalid addresses.
- * Version:     1.0.0
+ * Version:     1.0.1
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Author:      MailOdds
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'MAILODDS_VERSION', '1.0.0' );
+define( 'MAILODDS_VERSION', '1.0.1' );
 define( 'MAILODDS_PLUGIN_FILE', __FILE__ );
 define( 'MAILODDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILODDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
