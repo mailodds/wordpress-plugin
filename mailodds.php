@@ -3,14 +3,14 @@
  * Plugin Name: MailOdds Email Validation
  * Plugin URI:  https://mailodds.com/integrations/wordpress
  * Description: Validate emails on registration, checkout, and contact forms using the MailOdds API. Blocks fake signups, disposable emails, and invalid addresses.
- * Version:     1.0.1
+ * Version:     1.0.2
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Author:      MailOdds
  * Author URI:  https://mailodds.com
  * License:     GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: mailodds
+ * Text Domain: mailodds-email-validation
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'MAILODDS_VERSION', '1.0.1' );
+define( 'MAILODDS_VERSION', '1.0.2' );
 define( 'MAILODDS_PLUGIN_FILE', __FILE__ );
 define( 'MAILODDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILODDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -97,7 +97,7 @@ final class MailOdds {
 	public function add_cron_schedule( $schedules ) {
 		$schedules['mailodds_weekly'] = array(
 			'interval' => WEEK_IN_SECONDS,
-			'display'  => __( 'Once Weekly (MailOdds)', 'mailodds' ),
+			'display'  => __( 'Once Weekly (MailOdds)', 'mailodds-email-validation' ),
 		);
 		return $schedules;
 	}

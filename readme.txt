@@ -4,11 +4,11 @@ Tags: email validation, email verification, spam prevention, WooCommerce, regist
 Requires at least: 5.9
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Validate emails on WordPress registration, WooCommerce checkout, and popular form plugins. Block fake signups, disposable emails, and invalid addresses.
+Validate emails on registration, WooCommerce checkout, and forms. Block fake signups and disposable emails.
 
 == Description ==
 
@@ -123,6 +123,10 @@ One credit per unique email validation. Cached results and test mode do not cons
 
 == Changelog ==
 
+= 1.0.2 =
+* Fixed text domain to match wordpress.org slug (mailodds-email-validation)
+* Shortened readme short description to meet 150-character limit
+
 = 1.0.1 =
 * Added screenshot descriptions for wordpress.org directory
 * Added FAQ entry for WooCommerce-free usage
@@ -143,6 +147,9 @@ One credit per unique email validation. Cached results and test mode do not cons
 * Transient-based caching
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+Text domain fix for wordpress.org directory compliance.
 
 = 1.0.1 =
 Test suite, CI pipeline, and flat API response alignment.

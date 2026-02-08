@@ -72,8 +72,8 @@ class MailOdds_Admin {
 	 */
 	public function add_settings_page() {
 		add_options_page(
-			__( 'MailOdds Email Validation', 'mailodds' ),
-			__( 'MailOdds', 'mailodds' ),
+			__( 'MailOdds Email Validation', 'mailodds-email-validation' ),
+			__( 'MailOdds', 'mailodds-email-validation' ),
 			'manage_options',
 			'mailodds',
 			array( $this, 'render_settings_page' )
@@ -87,7 +87,7 @@ class MailOdds_Admin {
 		// API Settings section
 		add_settings_section(
 			'mailodds_api_section',
-			__( 'API Configuration', 'mailodds' ),
+			__( 'API Configuration', 'mailodds-email-validation' ),
 			array( $this, 'render_api_section' ),
 			'mailodds'
 		);
@@ -99,7 +99,7 @@ class MailOdds_Admin {
 		) );
 		add_settings_field(
 			'mailodds_api_key',
-			__( 'API Key', 'mailodds' ),
+			__( 'API Key', 'mailodds-email-validation' ),
 			array( $this, 'render_api_key_field' ),
 			'mailodds',
 			'mailodds_api_section'
@@ -108,7 +108,7 @@ class MailOdds_Admin {
 		// Validation Settings section
 		add_settings_section(
 			'mailodds_validation_section',
-			__( 'Validation Settings', 'mailodds' ),
+			__( 'Validation Settings', 'mailodds-email-validation' ),
 			null,
 			'mailodds'
 		);
@@ -121,7 +121,7 @@ class MailOdds_Admin {
 		) );
 		add_settings_field(
 			'mailodds_depth',
-			__( 'Validation Depth', 'mailodds' ),
+			__( 'Validation Depth', 'mailodds-email-validation' ),
 			array( $this, 'render_depth_field' ),
 			'mailodds',
 			'mailodds_validation_section'
@@ -135,7 +135,7 @@ class MailOdds_Admin {
 		) );
 		add_settings_field(
 			'mailodds_action_threshold',
-			__( 'Block Threshold', 'mailodds' ),
+			__( 'Block Threshold', 'mailodds-email-validation' ),
 			array( $this, 'render_threshold_field' ),
 			'mailodds',
 			'mailodds_validation_section'
@@ -149,7 +149,7 @@ class MailOdds_Admin {
 		) );
 		add_settings_field(
 			'mailodds_policy_id',
-			__( 'Policy ID', 'mailodds' ),
+			__( 'Policy ID', 'mailodds-email-validation' ),
 			array( $this, 'render_policy_field' ),
 			'mailodds',
 			'mailodds_validation_section'
@@ -158,7 +158,7 @@ class MailOdds_Admin {
 		// Integration Toggles section
 		add_settings_section(
 			'mailodds_integrations_section',
-			__( 'Form Integrations', 'mailodds' ),
+			__( 'Form Integrations', 'mailodds-email-validation' ),
 			array( $this, 'render_integrations_section' ),
 			'mailodds'
 		);
@@ -176,7 +176,7 @@ class MailOdds_Admin {
 		) );
 		add_settings_field(
 			'mailodds_integrations',
-			__( 'Active Integrations', 'mailodds' ),
+			__( 'Active Integrations', 'mailodds-email-validation' ),
 			array( $this, 'render_integrations_field' ),
 			'mailodds',
 			'mailodds_integrations_section'
@@ -185,7 +185,7 @@ class MailOdds_Admin {
 		// Cron section
 		add_settings_section(
 			'mailodds_cron_section',
-			__( 'Scheduled Validation', 'mailodds' ),
+			__( 'Scheduled Validation', 'mailodds-email-validation' ),
 			null,
 			'mailodds'
 		);
@@ -197,7 +197,7 @@ class MailOdds_Admin {
 		) );
 		add_settings_field(
 			'mailodds_cron_enabled',
-			__( 'Weekly User Validation', 'mailodds' ),
+			__( 'Weekly User Validation', 'mailodds-email-validation' ),
 			array( $this, 'render_cron_field' ),
 			'mailodds',
 			'mailodds_cron_section'
@@ -210,10 +210,10 @@ class MailOdds_Admin {
 	public function render_api_section() {
 		if ( $this->api->is_test_mode() ) {
 			echo '<div class="mailodds-test-badge">';
-			echo esc_html__( 'TEST MODE -- Using test API key. No credits consumed.', 'mailodds' );
+			echo esc_html__( 'TEST MODE -- Using test API key. No credits consumed.', 'mailodds-email-validation' );
 			echo '</div>';
 		}
-		echo '<p>' . esc_html__( 'Enter your MailOdds API key. Get one at', 'mailodds' );
+		echo '<p>' . esc_html__( 'Enter your MailOdds API key. Get one at', 'mailodds-email-validation' );
 		echo ' <a href="https://mailodds.com/dashboard/settings" target="_blank">mailodds.com/dashboard/settings</a>.</p>';
 	}
 
@@ -231,7 +231,7 @@ class MailOdds_Admin {
 		if ( ! empty( $masked ) ) {
 			echo '<p class="description">' . esc_html( sprintf(
 				/* translators: %s: masked API key */
-				__( 'Current key: %s', 'mailodds' ),
+				__( 'Current key: %s', 'mailodds-email-validation' ),
 				$masked
 			) ) . '</p>';
 		}
@@ -244,11 +244,11 @@ class MailOdds_Admin {
 		$value = get_option( 'mailodds_depth', 'enhanced' );
 		echo '<select name="mailodds_depth" id="mailodds_depth">';
 		echo '<option value="enhanced"' . selected( $value, 'enhanced', false ) . '>';
-		echo esc_html__( 'Enhanced (full SMTP check)', 'mailodds' ) . '</option>';
+		echo esc_html__( 'Enhanced (full SMTP check)', 'mailodds-email-validation' ) . '</option>';
 		echo '<option value="standard"' . selected( $value, 'standard', false ) . '>';
-		echo esc_html__( 'Standard (syntax + MX only)', 'mailodds' ) . '</option>';
+		echo esc_html__( 'Standard (syntax + MX only)', 'mailodds-email-validation' ) . '</option>';
 		echo '</select>';
-		echo '<p class="description">' . esc_html__( 'Enhanced is more accurate but slightly slower.', 'mailodds' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Enhanced is more accurate but slightly slower.', 'mailodds-email-validation' ) . '</p>';
 	}
 
 	/**
@@ -258,11 +258,11 @@ class MailOdds_Admin {
 		$value = get_option( 'mailodds_action_threshold', 'reject' );
 		echo '<select name="mailodds_action_threshold" id="mailodds_action_threshold">';
 		echo '<option value="reject"' . selected( $value, 'reject', false ) . '>';
-		echo esc_html__( 'Block only rejected emails (recommended)', 'mailodds' ) . '</option>';
+		echo esc_html__( 'Block only rejected emails (recommended)', 'mailodds-email-validation' ) . '</option>';
 		echo '<option value="caution"' . selected( $value, 'caution', false ) . '>';
-		echo esc_html__( 'Block rejected + risky (catch-all, role accounts)', 'mailodds' ) . '</option>';
+		echo esc_html__( 'Block rejected + risky (catch-all, role accounts)', 'mailodds-email-validation' ) . '</option>';
 		echo '</select>';
-		echo '<p class="description">' . esc_html__( 'Controls which emails are blocked on registration and forms.', 'mailodds' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Controls which emails are blocked on registration and forms.', 'mailodds-email-validation' ) . '</p>';
 	}
 
 	/**
@@ -272,14 +272,14 @@ class MailOdds_Admin {
 		$value = get_option( 'mailodds_policy_id', 0 );
 		echo '<input type="number" name="mailodds_policy_id" id="mailodds_policy_id" ';
 		echo 'value="' . esc_attr( $value ) . '" class="small-text" min="0" />';
-		echo '<p class="description">' . esc_html__( 'Optional. Apply a MailOdds policy to all validations. Leave 0 for default.', 'mailodds' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Optional. Apply a MailOdds policy to all validations. Leave 0 for default.', 'mailodds-email-validation' ) . '</p>';
 	}
 
 	/**
 	 * Render integrations section description.
 	 */
 	public function render_integrations_section() {
-		echo '<p>' . esc_html__( 'Enable validation for specific form plugins. Only enable integrations you have installed.', 'mailodds' ) . '</p>';
+		echo '<p>' . esc_html__( 'Enable validation for specific form plugins. Only enable integrations you have installed.', 'mailodds-email-validation' ) . '</p>';
 	}
 
 	/**
@@ -288,11 +288,11 @@ class MailOdds_Admin {
 	public function render_integrations_field() {
 		$integrations = get_option( 'mailodds_integrations', array() );
 		$options = array(
-			'wp_registration' => __( 'WordPress Registration', 'mailodds' ),
-			'woocommerce'     => __( 'WooCommerce (registration + checkout)', 'mailodds' ),
-			'wpforms'         => __( 'WPForms', 'mailodds' ),
-			'gravity_forms'   => __( 'Gravity Forms', 'mailodds' ),
-			'cf7'             => __( 'Contact Form 7', 'mailodds' ),
+			'wp_registration' => __( 'WordPress Registration', 'mailodds-email-validation' ),
+			'woocommerce'     => __( 'WooCommerce (registration + checkout)', 'mailodds-email-validation' ),
+			'wpforms'         => __( 'WPForms', 'mailodds-email-validation' ),
+			'gravity_forms'   => __( 'Gravity Forms', 'mailodds-email-validation' ),
+			'cf7'             => __( 'Contact Form 7', 'mailodds-email-validation' ),
 		);
 
 		foreach ( $options as $key => $label ) {
@@ -315,12 +315,12 @@ class MailOdds_Admin {
 		echo '<label>';
 		echo '<input type="checkbox" name="mailodds_cron_enabled" value="1"';
 		checked( $enabled );
-		echo ' /> ' . esc_html__( 'Validate unvalidated users weekly (50 per run)', 'mailodds' ) . '</label>';
+		echo ' /> ' . esc_html__( 'Validate unvalidated users weekly (50 per run)', 'mailodds-email-validation' ) . '</label>';
 
 		if ( ! empty( $stats['last_run'] ) ) {
 			echo '<p class="description">' . esc_html( sprintf(
 				/* translators: 1: last run date, 2: count */
-				__( 'Last run: %1$s (%2$d users validated)', 'mailodds' ),
+				__( 'Last run: %1$s (%2$d users validated)', 'mailodds-email-validation' ),
 				$stats['last_run'],
 				$stats['last_count']
 			) ) . '</p>';
@@ -408,7 +408,7 @@ class MailOdds_Admin {
 			echo wp_kses(
 				sprintf(
 					/* translators: %s: settings page URL */
-					__( 'MailOdds: API key not configured. <a href="%s">Configure it now</a> to start validating emails.', 'mailodds' ),
+					__( 'MailOdds: API key not configured. <a href="%s">Configure it now</a> to start validating emails.', 'mailodds-email-validation' ),
 					esc_url( $settings_url )
 				),
 				array( 'a' => array( 'href' => array() ) )
@@ -419,7 +419,7 @@ class MailOdds_Admin {
 		// Test mode indicator
 		if ( $this->api->is_test_mode() ) {
 			echo '<div class="notice notice-info"><p>';
-			echo esc_html__( 'MailOdds is running in TEST MODE. Validations use test domains and do not consume credits.', 'mailodds' );
+			echo esc_html__( 'MailOdds is running in TEST MODE. Validations use test domains and do not consume credits.', 'mailodds-email-validation' );
 			echo '</p></div>';
 		}
 	}
@@ -434,7 +434,7 @@ class MailOdds_Admin {
 
 		wp_add_dashboard_widget(
 			'mailodds_dashboard_widget',
-			__( 'MailOdds Email Validation', 'mailodds' ),
+			__( 'MailOdds Email Validation', 'mailodds-email-validation' ),
 			array( $this, 'render_dashboard_widget' )
 		);
 	}
@@ -448,7 +448,7 @@ class MailOdds_Admin {
 			echo '<p>' . wp_kses(
 				sprintf(
 					/* translators: %s: settings page URL */
-					__( '<a href="%s">Configure your API key</a> to start validating emails.', 'mailodds' ),
+					__( '<a href="%s">Configure your API key</a> to start validating emails.', 'mailodds-email-validation' ),
 					esc_url( $settings_url )
 				),
 				array( 'a' => array( 'href' => array() ) )
@@ -480,40 +480,40 @@ class MailOdds_Admin {
 		}
 
 		if ( $this->api->is_test_mode() ) {
-			echo '<p><strong>' . esc_html__( 'TEST MODE', 'mailodds' ) . '</strong></p>';
+			echo '<p><strong>' . esc_html__( 'TEST MODE', 'mailodds-email-validation' ) . '</strong></p>';
 		}
 		?>
 		<table class="widefat striped" style="border:0;">
 			<thead>
 				<tr>
 					<th></th>
-					<th><?php esc_html_e( 'Today', 'mailodds' ); ?></th>
-					<th><?php esc_html_e( 'Last 7 Days', 'mailodds' ); ?></th>
+					<th><?php esc_html_e( 'Today', 'mailodds-email-validation' ); ?></th>
+					<th><?php esc_html_e( 'Last 7 Days', 'mailodds-email-validation' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr>
-					<td><strong><?php esc_html_e( 'Total', 'mailodds' ); ?></strong></td>
+					<td><strong><?php esc_html_e( 'Total', 'mailodds-email-validation' ); ?></strong></td>
 					<td><?php echo esc_html( $today_stats['total'] ); ?></td>
 					<td><?php echo esc_html( $totals['total'] ); ?></td>
 				</tr>
 				<tr>
-					<td><?php esc_html_e( 'Valid', 'mailodds' ); ?></td>
+					<td><?php esc_html_e( 'Valid', 'mailodds-email-validation' ); ?></td>
 					<td><?php echo esc_html( $today_stats['valid'] ); ?></td>
 					<td><?php echo esc_html( $totals['valid'] ); ?></td>
 				</tr>
 				<tr>
-					<td><?php esc_html_e( 'Invalid', 'mailodds' ); ?></td>
+					<td><?php esc_html_e( 'Invalid', 'mailodds-email-validation' ); ?></td>
 					<td><?php echo esc_html( $today_stats['invalid'] ); ?></td>
 					<td><?php echo esc_html( $totals['invalid'] ); ?></td>
 				</tr>
 				<tr>
-					<td><?php esc_html_e( 'Catch-All', 'mailodds' ); ?></td>
+					<td><?php esc_html_e( 'Catch-All', 'mailodds-email-validation' ); ?></td>
 					<td><?php echo esc_html( $today_stats['catch_all'] ); ?></td>
 					<td><?php echo esc_html( $totals['catch_all'] ); ?></td>
 				</tr>
 				<tr>
-					<td><?php esc_html_e( 'Do Not Mail', 'mailodds' ); ?></td>
+					<td><?php esc_html_e( 'Do Not Mail', 'mailodds-email-validation' ); ?></td>
 					<td><?php echo esc_html( $today_stats['do_not_mail'] ); ?></td>
 					<td><?php echo esc_html( $totals['do_not_mail'] ); ?></td>
 				</tr>
@@ -521,15 +521,15 @@ class MailOdds_Admin {
 		</table>
 		<p style="margin-top:12px;">
 			<a href="<?php echo esc_url( admin_url( 'options-general.php?page=mailodds' ) ); ?>">
-				<?php esc_html_e( 'Settings', 'mailodds' ); ?>
+				<?php esc_html_e( 'Settings', 'mailodds-email-validation' ); ?>
 			</a>
 			&nbsp;|&nbsp;
 			<a href="<?php echo esc_url( admin_url( 'tools.php?page=mailodds-bulk' ) ); ?>">
-				<?php esc_html_e( 'Bulk Validate', 'mailodds' ); ?>
+				<?php esc_html_e( 'Bulk Validate', 'mailodds-email-validation' ); ?>
 			</a>
 			&nbsp;|&nbsp;
 			<a href="https://mailodds.com/dashboard" target="_blank">
-				<?php esc_html_e( 'Full Dashboard', 'mailodds' ); ?>
+				<?php esc_html_e( 'Full Dashboard', 'mailodds-email-validation' ); ?>
 			</a>
 		</p>
 		<?php

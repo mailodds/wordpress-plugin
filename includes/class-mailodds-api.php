@@ -78,11 +78,11 @@ class MailOdds_API {
 	public function validate( $email, $options = array() ) {
 		$email = sanitize_email( $email );
 		if ( empty( $email ) ) {
-			return new WP_Error( 'mailodds_invalid_email', __( 'Invalid email address.', 'mailodds' ) );
+			return new WP_Error( 'mailodds_invalid_email', __( 'Invalid email address.', 'mailodds-email-validation' ) );
 		}
 
 		if ( ! $this->has_key() ) {
-			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds' ) );
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
 		}
 
 		$depth      = isset( $options['depth'] ) ? $options['depth'] : get_option( 'mailodds_depth', 'enhanced' );
@@ -142,14 +142,14 @@ class MailOdds_API {
 	 */
 	public function validate_batch( $emails, $options = array() ) {
 		if ( ! $this->has_key() ) {
-			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds' ) );
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
 		}
 
 		$emails = array_map( 'sanitize_email', $emails );
 		$emails = array_filter( $emails );
 
 		if ( empty( $emails ) ) {
-			return new WP_Error( 'mailodds_no_emails', __( 'No valid emails provided.', 'mailodds' ) );
+			return new WP_Error( 'mailodds_no_emails', __( 'No valid emails provided.', 'mailodds-email-validation' ) );
 		}
 
 		$depth     = isset( $options['depth'] ) ? $options['depth'] : get_option( 'mailodds_depth', 'enhanced' );
@@ -211,7 +211,7 @@ class MailOdds_API {
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( $code < 200 || $code >= 300 ) {
-			$message = isset( $body['error'] ) ? $body['error'] : __( 'API request failed.', 'mailodds' );
+			$message = isset( $body['error'] ) ? $body['error'] : __( 'API request failed.', 'mailodds-email-validation' );
 			return new WP_Error( 'mailodds_api_error', $message, array( 'status' => $code ) );
 		}
 

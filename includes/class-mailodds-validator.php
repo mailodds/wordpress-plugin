@@ -265,19 +265,19 @@ class MailOdds_Validator {
 		// Always block rejected emails
 		if ( 'reject' === $action ) {
 			if ( 'do_not_mail' === $status ) {
-				return __( '<strong>Error:</strong> This email address is not accepted. Please use a different email.', 'mailodds' );
+				return __( '<strong>Error:</strong> This email address is not accepted. Please use a different email.', 'mailodds-email-validation' );
 			}
-			return __( '<strong>Error:</strong> This email address could not be verified. Please check and try again.', 'mailodds' );
+			return __( '<strong>Error:</strong> This email address could not be verified. Please check and try again.', 'mailodds-email-validation' );
 		}
 
 		// Optionally block risky emails (accept_with_caution)
 		if ( 'caution' === $threshold && 'accept_with_caution' === $action ) {
-			return __( '<strong>Error:</strong> This email address appears risky. Please use a different email.', 'mailodds' );
+			return __( '<strong>Error:</strong> This email address appears risky. Please use a different email.', 'mailodds-email-validation' );
 		}
 
 		// Also block retry_later as unknown (can't verify = risky for registration)
 		if ( 'retry_later' === $action && 'caution' === $threshold ) {
-			return __( '<strong>Error:</strong> We could not verify this email at this time. Please try again later.', 'mailodds' );
+			return __( '<strong>Error:</strong> We could not verify this email at this time. Please try again later.', 'mailodds-email-validation' );
 		}
 
 		return null;

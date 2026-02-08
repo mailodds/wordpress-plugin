@@ -38,8 +38,8 @@ class MailOdds_Bulk {
 	 */
 	public function add_tools_page() {
 		add_management_page(
-			__( 'MailOdds Bulk Validate', 'mailodds' ),
-			__( 'MailOdds Bulk', 'mailodds' ),
+			__( 'MailOdds Bulk Validate', 'mailodds-email-validation' ),
+			__( 'MailOdds Bulk', 'mailodds-email-validation' ),
 			'manage_options',
 			'mailodds-bulk',
 			array( $this, 'render_page' )
@@ -80,11 +80,11 @@ class MailOdds_Bulk {
 		) );
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'MailOdds Bulk Email Validation', 'mailodds' ); ?></h1>
+			<h1><?php esc_html_e( 'MailOdds Bulk Email Validation', 'mailodds-email-validation' ); ?></h1>
 
 			<?php if ( ! $this->api->has_key() ) : ?>
 				<div class="notice notice-error">
-					<p><?php esc_html_e( 'API key not configured. Go to Settings > MailOdds to set it up.', 'mailodds' ); ?></p>
+					<p><?php esc_html_e( 'API key not configured. Go to Settings > MailOdds to set it up.', 'mailodds-email-validation' ); ?></p>
 				</div>
 			<?php else : ?>
 
@@ -92,15 +92,15 @@ class MailOdds_Bulk {
 			<div class="mailodds-bulk-summary" style="display:flex;gap:16px;margin:20px 0;">
 				<div class="mailodds-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px 24px;flex:1;">
 					<div style="font-size:28px;font-weight:600;"><?php echo esc_html( $total_users['total_users'] ); ?></div>
-					<div style="color:#646970;"><?php esc_html_e( 'Total Users', 'mailodds' ); ?></div>
+					<div style="color:#646970;"><?php esc_html_e( 'Total Users', 'mailodds-email-validation' ); ?></div>
 				</div>
 				<div class="mailodds-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px 24px;flex:1;">
 					<div style="font-size:28px;font-weight:600;color:#00a32a;"><?php echo esc_html( $validated_count ); ?></div>
-					<div style="color:#646970;"><?php esc_html_e( 'Validated', 'mailodds' ); ?></div>
+					<div style="color:#646970;"><?php esc_html_e( 'Validated', 'mailodds-email-validation' ); ?></div>
 				</div>
 				<div class="mailodds-card" style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px 24px;flex:1;">
 					<div style="font-size:28px;font-weight:600;color:#d63638;"><?php echo esc_html( $unvalidated_count ); ?></div>
-					<div style="color:#646970;"><?php esc_html_e( 'Unvalidated', 'mailodds' ); ?></div>
+					<div style="color:#646970;"><?php esc_html_e( 'Unvalidated', 'mailodds-email-validation' ); ?></div>
 				</div>
 			</div>
 
@@ -110,7 +110,7 @@ class MailOdds_Bulk {
 				<button id="mailodds-bulk-start" class="button button-primary button-large">
 					<?php echo esc_html( sprintf(
 						/* translators: %d: number of users */
-						__( 'Validate %d Unvalidated Users', 'mailodds' ),
+						__( 'Validate %d Unvalidated Users', 'mailodds-email-validation' ),
 						$unvalidated_count
 					) ); ?>
 				</button>
@@ -126,12 +126,12 @@ class MailOdds_Bulk {
 
 			<!-- Unvalidated users table -->
 			<?php if ( ! empty( $unvalidated_users ) ) : ?>
-			<h2><?php esc_html_e( 'Unvalidated Users', 'mailodds' ); ?></h2>
+			<h2><?php esc_html_e( 'Unvalidated Users', 'mailodds-email-validation' ); ?></h2>
 			<table class="widefat striped">
 				<thead>
 					<tr>
-						<th><?php esc_html_e( 'Email', 'mailodds' ); ?></th>
-						<th><?php esc_html_e( 'Registered', 'mailodds' ); ?></th>
+						<th><?php esc_html_e( 'Email', 'mailodds-email-validation' ); ?></th>
+						<th><?php esc_html_e( 'Registered', 'mailodds-email-validation' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -147,14 +147,14 @@ class MailOdds_Bulk {
 
 			<!-- Validated users table -->
 			<?php if ( ! empty( $users ) ) : ?>
-			<h2 style="margin-top:30px;"><?php esc_html_e( 'Recently Validated Users', 'mailodds' ); ?></h2>
+			<h2 style="margin-top:30px;"><?php esc_html_e( 'Recently Validated Users', 'mailodds-email-validation' ); ?></h2>
 			<table class="widefat striped">
 				<thead>
 					<tr>
-						<th><?php esc_html_e( 'Email', 'mailodds' ); ?></th>
-						<th><?php esc_html_e( 'Status', 'mailodds' ); ?></th>
-						<th><?php esc_html_e( 'Action', 'mailodds' ); ?></th>
-						<th><?php esc_html_e( 'Validated', 'mailodds' ); ?></th>
+						<th><?php esc_html_e( 'Email', 'mailodds-email-validation' ); ?></th>
+						<th><?php esc_html_e( 'Status', 'mailodds-email-validation' ); ?></th>
+						<th><?php esc_html_e( 'Action', 'mailodds-email-validation' ); ?></th>
+						<th><?php esc_html_e( 'Validated', 'mailodds-email-validation' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -190,11 +190,11 @@ class MailOdds_Bulk {
 		check_ajax_referer( 'mailodds-bulk-nonce', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'mailodds' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'mailodds-email-validation' ) ) );
 		}
 
 		if ( ! $this->api->has_key() ) {
-			wp_send_json_error( array( 'message' => __( 'API key not configured.', 'mailodds' ) ) );
+			wp_send_json_error( array( 'message' => __( 'API key not configured.', 'mailodds-email-validation' ) ) );
 		}
 
 		$batch_size = 20;
