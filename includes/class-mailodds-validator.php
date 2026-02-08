@@ -216,7 +216,7 @@ class MailOdds_Validator {
 	 */
 	public function validate_cf7( $result, $tag ) {
 		$name  = $tag->name;
-		$email = isset( $_POST[ $name ] ) ? sanitize_email( wp_unslash( $_POST[ $name ] ) ) : '';
+		$email = isset( $_POST[ $name ] ) ? sanitize_email( wp_unslash( $_POST[ $name ] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- CF7 verifies nonce before calling validation filters.
 
 		if ( empty( $email ) ) {
 			return $result;
