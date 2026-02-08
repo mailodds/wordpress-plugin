@@ -91,6 +91,14 @@ Use an API key with the `mo_test_` prefix to enable test mode. Test mode:
   * `*@risky.mailodds.com` - Returns catch_all/accept_with_caution
   * `*@disposable.mailodds.com` - Returns do_not_mail/reject
 
+== Screenshots ==
+
+1. Settings page - Configure API key, validation depth, block threshold, and form integrations.
+2. WooCommerce checkout - Invalid email blocked with user-friendly error message.
+3. Dashboard widget - 7-day validation stats at a glance.
+4. Bulk validation - Validate all existing WordPress users in batches.
+5. WP-CLI - Validate emails and manage users from the command line.
+
 == Frequently Asked Questions ==
 
 = Does this work with WooCommerce? =
@@ -104,6 +112,10 @@ The plugin uses fail-open design. If the MailOdds API is unreachable (timeout, n
 = Does it cache results? =
 
 Yes. Each email validation result is cached for 24 hours using WordPress transients. This prevents re-validating the same email on retries or double-submits.
+
+= Do I need WooCommerce? =
+
+No. The plugin works with plain WordPress registration out of the box. WooCommerce, WPForms, Gravity Forms, and Contact Form 7 integrations are optional and enabled individually.
 
 = How many credits does it use? =
 
