@@ -114,8 +114,7 @@ class MailOdds_API {
 			return $result;
 		}
 
-		// Normalize: the API wraps in a 'result' key
-		$data = isset( $result['result'] ) ? $result['result'] : $result;
+		$data = $result;
 
 		// Cache successful results
 		if ( ! $skip_cache && isset( $data['status'] ) ) {
@@ -174,11 +173,10 @@ class MailOdds_API {
 
 		// Cache each result individually
 		foreach ( $results as $item ) {
-			$data = isset( $item['result'] ) ? $item['result'] : $item;
-			if ( isset( $data['email'], $data['status'] ) ) {
-				$cache_key = $this->cache_key( $data['email'], $depth );
-				set_transient( $cache_key, $data, $this->cache_ttl );
-				$this->track_validation( $data );
+			if ( isset( $item['email'], $item['status'] ) ) {
+				$cache_key = $this->cache_key( $item['email'], $depth );
+				set_transient( $cache_key, $item, $this->cache_ttl );
+				$this->track_validation( $item );
 			}
 		}
 

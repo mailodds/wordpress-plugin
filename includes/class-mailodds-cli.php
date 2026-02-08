@@ -129,14 +129,19 @@ class MailOdds_CLI {
 			),
 		);
 
-		// Add checks if present
-		if ( isset( $result['checks'] ) && is_array( $result['checks'] ) ) {
-			foreach ( $result['checks'] as $check => $value ) {
-				$display[] = array(
-					'Field' => 'check.' . $check,
-					'Value' => is_null( $value ) ? '-' : ( $value ? 'true' : 'false' ),
-				);
-			}
+		$bool_fields = array( 'free_provider', 'disposable', 'role_account', 'mx_found' );
+		foreach ( $bool_fields as $field ) {
+			$display[] = array(
+				'Field' => $field,
+				'Value' => isset( $result[ $field ] ) ? ( $result[ $field ] ? 'true' : 'false' ) : '-',
+			);
+		}
+
+		if ( isset( $result['depth'] ) ) {
+			$display[] = array(
+				'Field' => 'depth',
+				'Value' => $result['depth'],
+			);
 		}
 
 		if ( ! empty( $result['_cached'] ) ) {
@@ -253,13 +258,12 @@ class MailOdds_CLI {
 			}
 
 			foreach ( $results as $item ) {
-				$data  = isset( $item['result'] ) ? $item['result'] : $item;
-				$email = isset( $data['email'] ) ? $data['email'] : '';
+				$email = isset( $item['email'] ) ? $item['email'] : '';
 				if ( isset( $user_map[ $email ] ) ) {
 					$user_id = $user_map[ $email ];
-					$status  = isset( $data['status'] ) ? $data['status'] : 'unknown';
+					$status  = isset( $item['status'] ) ? $item['status'] : 'unknown';
 					update_user_meta( $user_id, '_mailodds_status', sanitize_text_field( $status ) );
-					update_user_meta( $user_id, '_mailodds_action', sanitize_text_field( $data['action'] ) );
+					update_user_meta( $user_id, '_mailodds_action', sanitize_text_field( $item['action'] ) );
 					update_user_meta( $user_id, '_mailodds_validated_at', current_time( 'mysql' ) );
 					if ( isset( $summary[ $status ] ) ) {
 						$summary[ $status ]++;

@@ -234,12 +234,11 @@ class MailOdds_Bulk {
 
 		$processed = 0;
 		foreach ( $results as $item ) {
-			$data  = isset( $item['result'] ) ? $item['result'] : $item;
-			$email = isset( $data['email'] ) ? $data['email'] : '';
+			$email = isset( $item['email'] ) ? $item['email'] : '';
 			if ( isset( $user_map[ $email ] ) ) {
 				$user_id = $user_map[ $email ];
-				update_user_meta( $user_id, '_mailodds_status', sanitize_text_field( $data['status'] ) );
-				update_user_meta( $user_id, '_mailodds_action', sanitize_text_field( $data['action'] ) );
+				update_user_meta( $user_id, '_mailodds_status', sanitize_text_field( $item['status'] ) );
+				update_user_meta( $user_id, '_mailodds_action', sanitize_text_field( $item['action'] ) );
 				update_user_meta( $user_id, '_mailodds_validated_at', current_time( 'mysql' ) );
 				$processed++;
 			}
