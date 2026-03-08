@@ -3,7 +3,7 @@
  * Plugin Name: MailOdds Email Validation
  * Plugin URI:  https://mailodds.com/integrations/wordpress
  * Description: Validate emails on registration, checkout, and contact forms using the MailOdds API. Blocks fake signups, disposable emails, and invalid addresses.
- * Version:     1.0.2
+ * Version:     2.0.0
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Author:      MailOdds
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'MAILODDS_VERSION', '1.0.2' );
+define( 'MAILODDS_VERSION', '2.0.0' );
 define( 'MAILODDS_PLUGIN_FILE', __FILE__ );
 define( 'MAILODDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILODDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -29,6 +29,11 @@ require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-api.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-admin.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-validator.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-bulk.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-suppression.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-policies.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-updater.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-rest.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-webhook.php';
 
 // WP-CLI commands (only in CLI context)
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -77,14 +82,20 @@ final class MailOdds {
 		new MailOdds_Admin( $this->api );
 		new MailOdds_Validator( $this->api );
 		new MailOdds_Bulk( $this->api );
+		new MailOdds_Suppression( $this->api );
+		new MailOdds_Policies( $this->api );
+		new MailOdds_Updater();
+		new MailOdds_REST( $this->api );
+		new MailOdds_Webhook( $this->api );
 
 		// WP-CLI
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			MailOdds_CLI::register( $this->api );
 		}
 
-		// Cron for periodic validation
+		// Cron for periodic validation (two-phase: fire + check)
 		add_action( 'mailodds_cron_validate_users', array( $this, 'cron_validate_users' ) );
+		add_action( 'mailodds_cron_check_job', array( $this, 'cron_check_job' ) );
 		add_filter( 'cron_schedules', array( $this, 'add_cron_schedule' ) );
 	}
 
@@ -99,18 +110,31 @@ final class MailOdds {
 			'interval' => WEEK_IN_SECONDS,
 			'display'  => __( 'Once Weekly (MailOdds)', 'mailodds-email-validation' ),
 		);
+		$schedules['mailodds_15min'] = array(
+			'interval' => 900,
+			'display'  => __( 'Every 15 Minutes (MailOdds)', 'mailodds-email-validation' ),
+		);
 		return $schedules;
 	}
 
 	/**
-	 * Cron job: validate unvalidated users in batches.
+	 * Cron Phase A: create a validation job (fire and forget).
+	 *
+	 * For small batches (< 100), uses synchronous validate_batch.
+	 * For larger batches, creates an async job and stores the job_id
+	 * for Phase B to check on the next cron tick.
 	 */
 	public function cron_validate_users() {
 		if ( ! $this->api->has_key() ) {
 			return;
 		}
 
-		$batch_size = 50;
+		// Skip if a job is already in progress
+		$existing_job = get_option( 'mailodds_cron_job_id', '' );
+		if ( ! empty( $existing_job ) ) {
+			return;
+		}
+
 		$users = get_users( array(
 			'meta_query' => array(
 				array(
@@ -118,7 +142,7 @@ final class MailOdds {
 					'compare' => 'NOT EXISTS',
 				),
 			),
-			'number' => $batch_size,
+			'number' => 500,
 			'fields' => array( 'ID', 'user_email' ),
 		) );
 
@@ -126,33 +150,122 @@ final class MailOdds {
 			return;
 		}
 
-		$emails = array();
+		$emails   = array();
 		$user_map = array();
 		foreach ( $users as $user ) {
-			$emails[] = $user->user_email;
-			$user_map[ $user->user_email ] = $user->ID;
+			$emails[]                       = $user->user_email;
+			$user_map[ $user->user_email ]  = $user->ID;
 		}
 
-		$results = $this->api->validate_batch( $emails );
+		// Small batch: synchronous
+		if ( count( $emails ) < 100 ) {
+			$results = $this->api->validate_batch( array_slice( $emails, 0, 50 ) );
 
-		if ( is_wp_error( $results ) ) {
+			if ( is_wp_error( $results ) ) {
+				return;
+			}
+
+			foreach ( $results as $result ) {
+				$email = $result['email'];
+				if ( isset( $user_map[ $email ] ) ) {
+					$user_id = $user_map[ $email ];
+					update_user_meta( $user_id, '_mailodds_status', sanitize_text_field( $result['status'] ) );
+					update_user_meta( $user_id, '_mailodds_action', sanitize_text_field( $result['action'] ) );
+					update_user_meta( $user_id, '_mailodds_validated_at', current_time( 'mysql' ) );
+				}
+			}
+
+			$stats = get_option( 'mailodds_cron_stats', array() );
+			$stats['last_run']   = current_time( 'mysql' );
+			$stats['last_count'] = count( $results );
+			update_option( 'mailodds_cron_stats', $stats );
 			return;
 		}
 
-		foreach ( $results as $result ) {
-			$email = $result['email'];
-			if ( isset( $user_map[ $email ] ) ) {
-				$user_id = $user_map[ $email ];
-				update_user_meta( $user_id, '_mailodds_status', sanitize_text_field( $result['status'] ) );
-				update_user_meta( $user_id, '_mailodds_action', sanitize_text_field( $result['action'] ) );
-				update_user_meta( $user_id, '_mailodds_validated_at', current_time( 'mysql' ) );
-			}
+		// Large batch: create async job
+		$job = $this->api->create_job( $emails );
+
+		if ( is_wp_error( $job ) ) {
+			return;
 		}
 
-		// Track stats
+		$job_id = isset( $job['id'] ) ? $job['id'] : '';
+		if ( ! empty( $job_id ) ) {
+			update_option( 'mailodds_cron_job_id', $job_id );
+
+			// Schedule the check if not already scheduled
+			if ( ! wp_next_scheduled( 'mailodds_cron_check_job' ) ) {
+				wp_schedule_event( time() + 900, 'mailodds_15min', 'mailodds_cron_check_job' );
+			}
+		}
+	}
+
+	/**
+	 * Cron Phase B: check job status and apply results.
+	 */
+	public function cron_check_job() {
+		$job_id = get_option( 'mailodds_cron_job_id', '' );
+		if ( empty( $job_id ) ) {
+			wp_clear_scheduled_hook( 'mailodds_cron_check_job' );
+			return;
+		}
+
+		if ( ! $this->api->has_key() ) {
+			return;
+		}
+
+		$job = $this->api->get_job( $job_id );
+
+		if ( is_wp_error( $job ) ) {
+			return;
+		}
+
+		$status = isset( $job['status'] ) ? $job['status'] : '';
+
+		if ( 'completed' !== $status ) {
+			if ( 'failed' === $status || 'cancelled' === $status ) {
+				delete_option( 'mailodds_cron_job_id' );
+				wp_clear_scheduled_hook( 'mailodds_cron_check_job' );
+			}
+			return;
+		}
+
+		// Apply results
+		$page      = 1;
+		$applied   = 0;
+		while ( true ) {
+			$results = $this->api->get_job_results( $job_id, array( 'page' => $page, 'per_page' => 100 ) );
+
+			if ( is_wp_error( $results ) || empty( $results['results'] ) ) {
+				break;
+			}
+
+			foreach ( $results['results'] as $item ) {
+				if ( ! isset( $item['email'] ) ) {
+					continue;
+				}
+				$user = get_user_by( 'email', $item['email'] );
+				if ( $user ) {
+					update_user_meta( $user->ID, '_mailodds_status', sanitize_text_field( $item['status'] ) );
+					update_user_meta( $user->ID, '_mailodds_action', sanitize_text_field( $item['action'] ) );
+					update_user_meta( $user->ID, '_mailodds_validated_at', current_time( 'mysql' ) );
+					$applied++;
+				}
+			}
+
+			if ( count( $results['results'] ) < 100 ) {
+				break;
+			}
+			$page++;
+		}
+
+		// Clean up
+		delete_option( 'mailodds_cron_job_id' );
+		wp_clear_scheduled_hook( 'mailodds_cron_check_job' );
+
 		$stats = get_option( 'mailodds_cron_stats', array() );
 		$stats['last_run']   = current_time( 'mysql' );
-		$stats['last_count'] = count( $users );
+		$stats['last_count'] = $applied;
 		update_option( 'mailodds_cron_stats', $stats );
 	}
 }
@@ -175,6 +288,7 @@ register_activation_hook( __FILE__, 'mailodds_activate' );
  */
 function mailodds_deactivate() {
 	wp_clear_scheduled_hook( 'mailodds_cron_validate_users' );
+	wp_clear_scheduled_hook( 'mailodds_cron_check_job' );
 }
 register_deactivation_hook( __FILE__, 'mailodds_deactivate' );
 

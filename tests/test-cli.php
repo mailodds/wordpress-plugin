@@ -84,10 +84,13 @@ namespace {
 			$api = Mockery::mock( 'MailOdds_API' );
 			MailOdds_CLI::register( $api );
 
-			$this->assertCount( 3, WP_CLI::$commands );
+			$this->assertCount( 17, WP_CLI::$commands );
 			$this->assertContains( 'mailodds validate', WP_CLI::$commands );
 			$this->assertContains( 'mailodds bulk', WP_CLI::$commands );
 			$this->assertContains( 'mailodds status', WP_CLI::$commands );
+			$this->assertContains( 'mailodds suppression list', WP_CLI::$commands );
+			$this->assertContains( 'mailodds jobs list', WP_CLI::$commands );
+			$this->assertContains( 'mailodds policies list', WP_CLI::$commands );
 		}
 
 		public function test_validate_no_key_calls_error() {

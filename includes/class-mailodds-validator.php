@@ -251,6 +251,22 @@ class MailOdds_Validator {
 			return null;
 		}
 
+		// Optional suppression pre-check (saves API credits)
+		if ( get_option( 'mailodds_check_suppression', false ) ) {
+			$supp = $this->api->check_suppression( $email );
+			if ( is_wp_error( $supp ) ) {
+				// Fail-open: log and increment counter
+				error_log( 'MailOdds: suppression check failed for ' . $email . ': ' . $supp->get_error_message() );
+				$count = absint( get_transient( 'mailodds_suppression_failopen_count' ) );
+				set_transient( 'mailodds_suppression_failopen_count', $count + 1, 30 * DAY_IN_SECONDS );
+				if ( 0 === $count ) {
+					set_transient( 'mailodds_suppression_failopen_since', current_time( 'mysql' ), 30 * DAY_IN_SECONDS );
+				}
+			} elseif ( isset( $supp['suppressed'] ) && $supp['suppressed'] ) {
+				return __( '<strong>Error:</strong> This email address is suppressed and cannot be used.', 'mailodds-email-validation' );
+			}
+		}
+
 		$result = $this->api->validate( $email );
 
 		// Fail-open: API error means we allow the email through

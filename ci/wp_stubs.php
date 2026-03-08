@@ -8,7 +8,7 @@
 
 // WordPress constants the plugin expects
 define('ABSPATH', '/app/');
-define('MAILODDS_VERSION', '1.0.0');
+define('MAILODDS_VERSION', '2.0.0');
 define('MAILODDS_PLUGIN_FILE', '/app/mailodds.php');
 define('MAILODDS_PLUGIN_DIR', '/app/');
 define('MAILODDS_PLUGIN_URL', 'http://localhost/wp-content/plugins/mailodds/');
@@ -66,6 +66,16 @@ function update_option($name, $value, $autoload = null) {
     global $_wp_options;
     $_wp_options[$name] = $value;
     return true;
+}
+
+function delete_option($name) {
+    global $_wp_options;
+    unset($_wp_options[$name]);
+    return true;
+}
+
+function rest_sanitize_boolean($value) {
+    return (bool) $value;
 }
 
 // Transient stubs (no-op for smoke test)
@@ -131,12 +141,77 @@ function wp_remote_post($url, $args = []) {
     ];
 }
 
+function wp_remote_request($url, $args = []) {
+    $method = isset($args['method']) ? strtoupper($args['method']) : 'GET';
+    $headers = isset($args['headers']) ? $args['headers'] : [];
+    $body = isset($args['body']) ? $args['body'] : '';
+    $timeout = isset($args['timeout']) ? $args['timeout'] : 10;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    if (!empty($body)) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+    }
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+
+    $curl_headers = [];
+    foreach ($headers as $key => $value) {
+        $curl_headers[] = "$key: $value";
+    }
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $curl_headers);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($error) {
+        return new WP_Error('http_request_failed', $error);
+    }
+
+    $response_headers = substr($response, 0, $header_size);
+    $response_body = substr($response, $header_size);
+
+    return [
+        'response' => ['code' => $http_code],
+        'body' => $response_body,
+        'headers' => $response_headers,
+    ];
+}
+
+function wp_remote_get($url, $args = []) {
+    $args['method'] = 'GET';
+    return wp_remote_request($url, $args);
+}
+
+function add_query_arg($args, $url) {
+    return $url . '?' . http_build_query($args);
+}
+
 function wp_remote_retrieve_response_code($response) {
     return isset($response['response']['code']) ? $response['response']['code'] : 0;
 }
 
 function wp_remote_retrieve_body($response) {
     return isset($response['body']) ? $response['body'] : '';
+}
+
+function wp_remote_retrieve_header($response, $header) {
+    if (!isset($response['headers'])) {
+        return '';
+    }
+    $raw = $response['headers'];
+    if (is_string($raw)) {
+        foreach (explode("\r\n", $raw) as $line) {
+            if (stripos($line, $header . ':') === 0) {
+                return trim(substr($line, strlen($header) + 1));
+            }
+        }
+    }
+    return '';
 }
 
 function wp_json_encode($data) {

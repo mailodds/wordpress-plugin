@@ -53,12 +53,13 @@ class WP_Error {
 
 // WordPress constants the plugin expects.
 define( 'ABSPATH', '/tmp/wordpress/' );
-define( 'MAILODDS_VERSION', '1.0.0' );
+define( 'MAILODDS_VERSION', '2.0.0' );
 define( 'MAILODDS_PLUGIN_FILE', dirname( __DIR__ ) . '/mailodds.php' );
 define( 'MAILODDS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'MAILODDS_PLUGIN_URL', 'http://localhost/wp-content/plugins/mailodds/' );
 define( 'MAILODDS_API_BASE', 'https://api.mailodds.com' );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'HOUR_IN_SECONDS', 3600 );
 define( 'WEEK_IN_SECONDS', 604800 );
 
 /**
@@ -133,3 +134,8 @@ require_once dirname( __DIR__ ) . '/includes/class-mailodds-api.php';
 require_once dirname( __DIR__ ) . '/includes/class-mailodds-validator.php';
 require_once dirname( __DIR__ ) . '/includes/class-mailodds-admin.php';
 require_once dirname( __DIR__ ) . '/includes/class-mailodds-bulk.php';
+require_once dirname( __DIR__ ) . '/includes/class-mailodds-suppression.php';
+require_once dirname( __DIR__ ) . '/includes/class-mailodds-policies.php';
+require_once dirname( __DIR__ ) . '/includes/class-mailodds-updater.php';
+require_once dirname( __DIR__ ) . '/includes/class-mailodds-rest.php';
+require_once dirname( __DIR__ ) . '/includes/class-mailodds-webhook.php';

@@ -63,4 +63,22 @@ class AdminTest extends MailOdds_TestCase {
 		// Non-array input returns empty array.
 		$this->assertSame( array(), $admin->sanitize_integrations( 'not_array' ) );
 	}
+
+	// ------------------------------------------------------------------
+	// Cache invalidation on API key change
+	// ------------------------------------------------------------------
+
+	public function test_cache_flush_on_api_key_change() {
+		$admin = $this->create_admin();
+
+		// Mock global $wpdb
+		global $wpdb;
+		$wpdb = Mockery::mock();
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'query' )
+			->twice()
+			->andReturn( true );
+
+		$admin->flush_transient_cache();
+	}
 }

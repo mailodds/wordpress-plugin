@@ -36,8 +36,8 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 	}
 
 	/**
-	 * Stub the wp_remote_retrieve_* helpers so they extract code/body from
-	 * the array returned by wp_remote_post.
+	 * Stub the wp_remote_retrieve_* helpers so they extract code/body/header
+	 * from the array returned by wp_remote_request.
 	 */
 	private function stub_response_extractors() {
 		Functions\when( 'wp_remote_retrieve_response_code' )
@@ -48,6 +48,8 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 			->alias( function ( $resp ) {
 				return $resp['body'];
 			} );
+		Functions\when( 'wp_remote_retrieve_header' )
+			->justReturn( '' );
 	}
 
 	// ------------------------------------------------------------------
@@ -61,7 +63,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'update_option' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -88,7 +90,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'update_option' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -129,7 +131,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 			'action' => 'accept',
 		);
 		Functions\when( 'get_transient' )->justReturn( $cached_data );
-		Functions\expect( 'wp_remote_post' )->never();
+		Functions\expect( 'wp_remote_request' )->never();
 
 		$api    = new MailOdds_API( 'mo_live_testkey123' );
 		$result = $api->validate( 'test@example.com' );
@@ -151,7 +153,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\expect( 'get_transient' )->never();
 		Functions\expect( 'set_transient' )->never();
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -170,7 +172,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_validate_empty_email_returns_error() {
-		Functions\expect( 'wp_remote_post' )->never();
+		Functions\expect( 'wp_remote_request' )->never();
 
 		$api    = new MailOdds_API( 'mo_live_testkey123' );
 		$result = $api->validate( '' );
@@ -184,7 +186,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_validate_no_api_key_returns_error() {
-		Functions\expect( 'wp_remote_post' )->never();
+		Functions\expect( 'wp_remote_request' )->never();
 
 		$api    = new MailOdds_API( '' );
 		$result = $api->validate( 'test@example.com' );
@@ -202,7 +204,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		$this->stub_response_extractors();
 		Functions\when( 'get_transient' )->justReturn( false );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 401 ),
@@ -217,7 +219,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// 8. Network error (wp_remote_post returns WP_Error)
+	// 8. Network error (wp_remote_request returns WP_Error)
 	// ------------------------------------------------------------------
 
 	public function test_validate_network_error_returns_wp_error() {
@@ -226,7 +228,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 
 		$wp_error = new WP_Error( 'http_request_failed', 'Connection timed out' );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( $wp_error );
 
@@ -250,7 +252,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 
 		$captured_body = null;
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturnUsing( function ( $url, $args ) use ( &$captured_body ) {
 				$captured_body = json_decode( $args['body'], true );
@@ -279,7 +281,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 
 		$captured_body = null;
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturnUsing( function ( $url, $args ) use ( &$captured_body ) {
 				$captured_body = json_decode( $args['body'], true );
@@ -308,7 +310,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 
 		$captured_body = null;
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturnUsing( function ( $url, $args ) use ( &$captured_body ) {
 				$captured_body = json_decode( $args['body'], true );
@@ -334,7 +336,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'update_option' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -358,7 +360,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		$this->stub_response_extractors();
 		Functions\when( 'update_option' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -383,7 +385,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'update_option' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->twice()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -416,7 +418,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'update_option' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->twice()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -449,7 +451,7 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
 
-		Functions\expect( 'wp_remote_post' )
+		Functions\expect( 'wp_remote_request' )
 			->once()
 			->andReturn( array(
 				'response' => array( 'code' => 200 ),
@@ -499,5 +501,174 @@ class Test_MailOdds_API extends MailOdds_TestCase {
 		$other = new MailOdds_API( 'some_random_key' );
 		$this->assertTrue( $other->has_key() );
 		$this->assertFalse( $other->is_test_mode() );
+	}
+
+	// ------------------------------------------------------------------
+	// 18. GET method works
+	// ------------------------------------------------------------------
+
+	public function test_get_method() {
+		$this->stub_default_options();
+		$this->stub_response_extractors();
+
+		$captured_args = null;
+
+		Functions\when( 'add_query_arg' )
+			->alias( function ( $args, $url ) {
+				return $url . '?' . http_build_query( $args );
+			} );
+
+		Functions\expect( 'wp_remote_request' )
+			->once()
+			->andReturnUsing( function ( $url, $args ) use ( &$captured_args ) {
+				$captured_args = $args;
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => '{"total":5,"entries":[]}',
+				);
+			} );
+
+		$api    = new MailOdds_API( 'mo_live_testkey123' );
+		$result = $api->get_suppression_list( array( 'page' => 1 ) );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'GET', $captured_args['method'] );
+	}
+
+	// ------------------------------------------------------------------
+	// 19. DELETE method works
+	// ------------------------------------------------------------------
+
+	public function test_delete_method() {
+		$this->stub_response_extractors();
+
+		$captured_args = null;
+
+		Functions\expect( 'wp_remote_request' )
+			->once()
+			->andReturnUsing( function ( $url, $args ) use ( &$captured_args ) {
+				$captured_args = $args;
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => '{"removed":1}',
+				);
+			} );
+
+		$api    = new MailOdds_API( 'mo_live_testkey123' );
+		$result = $api->remove_suppression( array( array( 'email' => 'spam@test.com' ) ) );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'DELETE', $captured_args['method'] );
+	}
+
+	// ------------------------------------------------------------------
+	// 20. PUT method works
+	// ------------------------------------------------------------------
+
+	public function test_put_method() {
+		$this->stub_response_extractors();
+
+		$captured_args = null;
+
+		Functions\expect( 'wp_remote_request' )
+			->once()
+			->andReturnUsing( function ( $url, $args ) use ( &$captured_args ) {
+				$captured_args = $args;
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => '{"id":1,"name":"Updated Policy"}',
+				);
+			} );
+
+		$api    = new MailOdds_API( 'mo_live_testkey123' );
+		$result = $api->update_policy( 1, array( 'name' => 'Updated Policy' ) );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'PUT', $captured_args['method'] );
+	}
+
+	// ------------------------------------------------------------------
+	// 21. 429 rate limit with retry succeeds
+	// ------------------------------------------------------------------
+
+	public function test_429_retry_succeeds() {
+		$this->stub_default_options();
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		Functions\when( 'wp_remote_retrieve_response_code' )
+			->alias( function ( $resp ) {
+				return $resp['response']['code'];
+			} );
+		Functions\when( 'wp_remote_retrieve_body' )
+			->alias( function ( $resp ) {
+				return $resp['body'];
+			} );
+
+		$call_count = 0;
+
+		Functions\when( 'wp_remote_retrieve_header' )
+			->alias( function ( $resp, $header ) {
+				if ( 'retry-after' === $header && 429 === $resp['response']['code'] ) {
+					return '1';
+				}
+				return '';
+			} );
+
+		Functions\expect( 'wp_remote_request' )
+			->twice()
+			->andReturnUsing( function () use ( &$call_count ) {
+				$call_count++;
+				if ( 1 === $call_count ) {
+					return array(
+						'response' => array( 'code' => 429 ),
+						'body'     => '{"error":"Rate limited"}',
+					);
+				}
+				return array(
+					'response' => array( 'code' => 200 ),
+					'body'     => '{"email":"test@example.com","status":"valid","action":"accept"}',
+				);
+			} );
+
+		$api    = new MailOdds_API( 'mo_live_testkey123' );
+		$result = $api->validate( 'test@example.com' );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 'valid', $result['status'] );
+	}
+
+	// ------------------------------------------------------------------
+	// 22. 429 rate limit exhausted returns WP_Error
+	// ------------------------------------------------------------------
+
+	public function test_429_retry_exhausted() {
+		$this->stub_default_options();
+		Functions\when( 'get_transient' )->justReturn( false );
+
+		Functions\when( 'wp_remote_retrieve_response_code' )
+			->alias( function ( $resp ) {
+				return $resp['response']['code'];
+			} );
+		Functions\when( 'wp_remote_retrieve_body' )
+			->alias( function ( $resp ) {
+				return $resp['body'];
+			} );
+		Functions\when( 'wp_remote_retrieve_header' )
+			->justReturn( '1' );
+
+		Functions\expect( 'wp_remote_request' )
+			->twice()
+			->andReturn( array(
+				'response' => array( 'code' => 429 ),
+				'body'     => '{"error":"Rate limited"}',
+			) );
+
+		$api    = new MailOdds_API( 'mo_live_testkey123' );
+		$result = $api->validate( 'test@example.com' );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'mailodds_rate_limited', $result->get_error_code() );
 	}
 }

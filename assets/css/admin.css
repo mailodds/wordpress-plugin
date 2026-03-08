@@ -22,3 +22,18 @@
 #mailodds-bulk-progress {
 	max-width: 600px;
 }
+
+/* Suppression stats cards */
+.mailodds-suppression-stats .mailodds-card {
+	min-width: 100px;
+}
+
+/* Policy test result */
+#mailodds-policy-test-result pre {
+	background: #f0f0f1;
+	padding: 12px;
+	border-radius: 4px;
+	font-size: 12px;
+	max-height: 300px;
+	overflow: auto;
+}

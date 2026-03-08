@@ -183,25 +183,358 @@ class MailOdds_API {
 		return $results;
 	}
 
+	// =========================================================================
+	// Suppression List
+	// =========================================================================
+
 	/**
-	 * Make a POST request to the MailOdds API.
+	 * Retrieve the suppression list.
 	 *
+	 * @param array $params Query parameters (page, per_page, etc.).
+	 * @return array|WP_Error
+	 */
+	public function get_suppression_list( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/suppression', $params );
+	}
+
+	/**
+	 * Add entries to the suppression list.
+	 *
+	 * @param array $entries Array of suppression entries.
+	 * @return array|WP_Error
+	 */
+	public function add_suppression( $entries ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/suppression', array( 'entries' => $entries ) );
+	}
+
+	/**
+	 * Remove entries from the suppression list.
+	 *
+	 * @param array $entries Array of suppression entries to remove.
+	 * @return array|WP_Error
+	 */
+	public function remove_suppression( $entries ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/suppression', array( 'entries' => $entries ) );
+	}
+
+	/**
+	 * Check if an email is on the suppression list.
+	 *
+	 * @param string $email Email address to check.
+	 * @return array|WP_Error
+	 */
+	public function check_suppression( $email ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/suppression/check', array( 'email' => sanitize_email( $email ) ) );
+	}
+
+	/**
+	 * Get suppression list statistics.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function get_suppression_stats() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/suppression/stats' );
+	}
+
+	// =========================================================================
+	// Bulk Validation Jobs
+	// =========================================================================
+
+	/**
+	 * Create a bulk validation job.
+	 *
+	 * @param array $emails  List of email addresses.
+	 * @param array $options Optional settings (depth, policy_id).
+	 * @return array|WP_Error
+	 */
+	public function create_job( $emails, $options = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		$body = array( 'emails' => array_values( $emails ) );
+		if ( isset( $options['depth'] ) ) {
+			$body['depth'] = $options['depth'];
+		}
+		if ( isset( $options['policy_id'] ) && absint( $options['policy_id'] ) > 0 ) {
+			$body['policy_id'] = absint( $options['policy_id'] );
+		}
+		return $this->post( '/v1/jobs', $body );
+	}
+
+	/**
+	 * List bulk validation jobs.
+	 *
+	 * @param array $params Query parameters (page, per_page, etc.).
+	 * @return array|WP_Error
+	 */
+	public function list_jobs( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/jobs', $params );
+	}
+
+	/**
+	 * Get a bulk validation job by ID.
+	 *
+	 * @param string $job_id Job ID.
+	 * @return array|WP_Error
+	 */
+	public function get_job( $job_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/jobs/' . rawurlencode( $job_id ) );
+	}
+
+	/**
+	 * Get results for a bulk validation job.
+	 *
+	 * @param string $job_id Job ID.
+	 * @param array  $params Query parameters (page, per_page, etc.).
+	 * @return array|WP_Error
+	 */
+	public function get_job_results( $job_id, $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/jobs/' . rawurlencode( $job_id ) . '/results', $params );
+	}
+
+	/**
+	 * Cancel a bulk validation job.
+	 *
+	 * @param string $job_id Job ID.
+	 * @return array|WP_Error
+	 */
+	public function cancel_job( $job_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/jobs/' . rawurlencode( $job_id ) . '/cancel' );
+	}
+
+	/**
+	 * Delete a bulk validation job.
+	 *
+	 * @param string $job_id Job ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_job( $job_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/jobs/' . rawurlencode( $job_id ) );
+	}
+
+	// =========================================================================
+	// Validation Policies
+	// =========================================================================
+
+	/**
+	 * List validation policies.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function list_policies() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/policies' );
+	}
+
+	/**
+	 * Create a validation policy.
+	 *
+	 * @param array $data Policy data.
+	 * @return array|WP_Error
+	 */
+	public function create_policy( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/policies', $data );
+	}
+
+	/**
+	 * Get available policy presets.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function get_policy_presets() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/policies/presets' );
+	}
+
+	/**
+	 * Create a policy from a preset.
+	 *
+	 * @param string $preset Preset identifier.
+	 * @param string $name   Optional custom name.
+	 * @return array|WP_Error
+	 */
+	public function create_policy_from_preset( $preset, $name = '' ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		$body = array( 'preset' => $preset );
+		if ( ! empty( $name ) ) {
+			$body['name'] = $name;
+		}
+		return $this->post( '/v1/policies/from-preset', $body );
+	}
+
+	/**
+	 * Get a validation policy by ID.
+	 *
+	 * @param int $policy_id Policy ID.
+	 * @return array|WP_Error
+	 */
+	public function get_policy( $policy_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/policies/' . absint( $policy_id ) );
+	}
+
+	/**
+	 * Update a validation policy.
+	 *
+	 * @param int   $policy_id Policy ID.
+	 * @param array $data      Updated policy data.
+	 * @return array|WP_Error
+	 */
+	public function update_policy( $policy_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/policies/' . absint( $policy_id ), $data );
+	}
+
+	/**
+	 * Delete a validation policy.
+	 *
+	 * @param int $policy_id Policy ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_policy( $policy_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/policies/' . absint( $policy_id ) );
+	}
+
+	/**
+	 * Add a rule to a validation policy.
+	 *
+	 * @param int   $policy_id Policy ID.
+	 * @param array $rule      Rule data.
+	 * @return array|WP_Error
+	 */
+	public function add_policy_rule( $policy_id, $rule ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/policies/' . absint( $policy_id ) . '/rules', $rule );
+	}
+
+	/**
+	 * Delete a rule from a validation policy.
+	 *
+	 * @param int $policy_id Policy ID.
+	 * @param int $rule_id   Rule ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_policy_rule( $policy_id, $rule_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/policies/' . absint( $policy_id ) . '/rules/' . absint( $rule_id ) );
+	}
+
+	/**
+	 * Test a validation policy against sample data.
+	 *
+	 * @param array $data Test data (email, policy rules, etc.).
+	 * @return array|WP_Error
+	 */
+	public function test_policy( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/policies/test', $data );
+	}
+
+	// =========================================================================
+	// Telemetry
+	// =========================================================================
+
+	/**
+	 * Get telemetry summary.
+	 *
+	 * @param string $window Time window (e.g. '24h', '7d').
+	 * @return array|WP_Error
+	 */
+	public function get_telemetry( $window = '24h' ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/telemetry/summary', array( 'window' => $window ) );
+	}
+
+	// =========================================================================
+	// HTTP Methods (private)
+	// =========================================================================
+
+	/**
+	 * Make an HTTP request to the MailOdds API.
+	 *
+	 * @param string $method   HTTP method (GET, POST, PUT, DELETE).
 	 * @param string $endpoint API endpoint path.
-	 * @param array  $body     Request body.
+	 * @param array  $args     Optional. Request arguments (body, query).
 	 * @return array|WP_Error Decoded response or error.
 	 */
-	private function post( $endpoint, $body ) {
+	private function request( $method, $endpoint, $args = array() ) {
 		$url = MAILODDS_API_BASE . $endpoint;
 
-		$response = wp_remote_post( $url, array(
-			'headers' => array(
-				'Authorization' => 'Bearer ' . $this->api_key,
-				'Content-Type'  => 'application/json',
-				'User-Agent'    => 'MailOdds-WordPress/' . MAILODDS_VERSION,
-			),
-			'body'    => wp_json_encode( $body ),
+		$headers = array(
+			'Authorization' => 'Bearer ' . $this->api_key,
+			'User-Agent'    => 'MailOdds-WordPress/' . MAILODDS_VERSION,
+		);
+
+		$request_args = array(
+			'method'  => strtoupper( $method ),
+			'headers' => $headers,
 			'timeout' => $this->timeout,
-		) );
+		);
+
+		if ( isset( $args['body'] ) ) {
+			$request_args['headers']['Content-Type'] = 'application/json';
+			$request_args['body'] = wp_json_encode( $args['body'] );
+		}
+
+		if ( isset( $args['query'] ) && ! empty( $args['query'] ) ) {
+			$url = add_query_arg( $args['query'], $url );
+		}
+
+		$response = wp_remote_request( $url, $request_args );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -210,12 +543,84 @@ class MailOdds_API {
 		$code = wp_remote_retrieve_response_code( $response );
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
+		// 429 rate-limit: single retry with Retry-After (capped at 5s)
+		if ( 429 === $code ) {
+			$retry_after = (int) wp_remote_retrieve_header( $response, 'retry-after' );
+			$retry_after = max( 1, min( $retry_after, 5 ) );
+			sleep( $retry_after );
+
+			$response = wp_remote_request( $url, $request_args );
+
+			if ( is_wp_error( $response ) ) {
+				return $response;
+			}
+
+			$code = wp_remote_retrieve_response_code( $response );
+			$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+			if ( 429 === $code ) {
+				return new WP_Error( 'mailodds_rate_limited', __( 'API rate limit exceeded. Please try again later.', 'mailodds-email-validation' ) );
+			}
+		}
+
 		if ( $code < 200 || $code >= 300 ) {
 			$message = isset( $body['error'] ) ? $body['error'] : __( 'API request failed.', 'mailodds-email-validation' );
 			return new WP_Error( 'mailodds_api_error', $message, array( 'status' => $code ) );
 		}
 
 		return $body;
+	}
+
+	/**
+	 * Make a POST request.
+	 *
+	 * @param string $endpoint API endpoint path.
+	 * @param array  $body     Request body.
+	 * @return array|WP_Error
+	 */
+	private function post( $endpoint, $body = array() ) {
+		return $this->request( 'POST', $endpoint, array( 'body' => $body ) );
+	}
+
+	/**
+	 * Make a GET request.
+	 *
+	 * @param string $endpoint     API endpoint path.
+	 * @param array  $query_params Query parameters.
+	 * @return array|WP_Error
+	 */
+	private function get( $endpoint, $query_params = array() ) {
+		$args = array();
+		if ( ! empty( $query_params ) ) {
+			$args['query'] = $query_params;
+		}
+		return $this->request( 'GET', $endpoint, $args );
+	}
+
+	/**
+	 * Make a PUT request.
+	 *
+	 * @param string $endpoint API endpoint path.
+	 * @param array  $body     Request body.
+	 * @return array|WP_Error
+	 */
+	private function put( $endpoint, $body = array() ) {
+		return $this->request( 'PUT', $endpoint, array( 'body' => $body ) );
+	}
+
+	/**
+	 * Make a DELETE request.
+	 *
+	 * @param string $endpoint API endpoint path.
+	 * @param array  $body     Optional request body.
+	 * @return array|WP_Error
+	 */
+	private function delete( $endpoint, $body = array() ) {
+		$args = array();
+		if ( ! empty( $body ) ) {
+			$args['body'] = $body;
+		}
+		return $this->request( 'DELETE', $endpoint, $args );
 	}
 
 	/**

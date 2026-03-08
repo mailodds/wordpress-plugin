@@ -35,6 +35,19 @@ class MailOdds_Admin {
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'update_option_mailodds_api_key', array( $this, 'flush_transient_cache' ) );
+	}
+
+	/**
+	 * Flush all MailOdds transient caches.
+	 *
+	 * Called when the API key changes to prevent stale cached results
+	 * from being served under the new key.
+	 */
+	public function flush_transient_cache() {
+		global $wpdb;
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_mailodds_%'" );
+		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_mailodds_%'" );
 	}
 
 	/**
@@ -43,16 +56,21 @@ class MailOdds_Admin {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( 'settings_page_mailodds' === $hook || 'tools_page_mailodds-bulk' === $hook ) {
+		$plugin_pages = array(
+			'settings_page_mailodds',
+			'settings_page_mailodds-policies',
+			'tools_page_mailodds-bulk',
+			'tools_page_mailodds-suppressions',
+		);
+
+		if ( in_array( $hook, $plugin_pages, true ) ) {
 			wp_enqueue_style(
 				'mailodds-admin',
 				MAILODDS_PLUGIN_URL . 'assets/css/admin.css',
 				array(),
 				MAILODDS_VERSION
 			);
-		}
 
-		if ( 'tools_page_mailodds-bulk' === $hook ) {
 			wp_enqueue_script(
 				'mailodds-admin',
 				MAILODDS_PLUGIN_URL . 'assets/js/admin.js',
@@ -60,9 +78,18 @@ class MailOdds_Admin {
 				MAILODDS_VERSION,
 				true
 			);
+
+			// Determine the right nonce based on page
+			$nonce = 'mailodds-bulk-nonce';
+			if ( 'tools_page_mailodds-suppressions' === $hook ) {
+				$nonce = 'mailodds-suppression-nonce';
+			} elseif ( 'settings_page_mailodds-policies' === $hook ) {
+				$nonce = 'mailodds-policy-nonce';
+			}
+
 			wp_localize_script( 'mailodds-admin', 'mailodds_ajax', array(
 				'ajaxurl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'mailodds-bulk-nonce' ),
+				'nonce'   => wp_create_nonce( $nonce ),
 			) );
 		}
 	}
@@ -202,6 +229,55 @@ class MailOdds_Admin {
 			'mailodds',
 			'mailodds_cron_section'
 		);
+
+		// Suppression pre-check
+		register_setting( 'mailodds_options', 'mailodds_check_suppression', array(
+			'type'              => 'boolean',
+			'default'           => false,
+			'sanitize_callback' => 'rest_sanitize_boolean',
+		) );
+		add_settings_field(
+			'mailodds_check_suppression',
+			__( 'Suppression Pre-check', 'mailodds-email-validation' ),
+			array( $this, 'render_suppression_check_field' ),
+			'mailodds',
+			'mailodds_validation_section'
+		);
+
+		// Advanced section
+		add_settings_section(
+			'mailodds_advanced_section',
+			__( 'Advanced', 'mailodds-email-validation' ),
+			null,
+			'mailodds'
+		);
+
+		// Webhook Secret
+		register_setting( 'mailodds_options', 'mailodds_webhook_secret', array(
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_text_field',
+		) );
+		add_settings_field(
+			'mailodds_webhook_secret',
+			__( 'Webhook Secret', 'mailodds-email-validation' ),
+			array( $this, 'render_webhook_secret_field' ),
+			'mailodds',
+			'mailodds_advanced_section'
+		);
+
+		// Telemetry Dashboard
+		register_setting( 'mailodds_options', 'mailodds_telemetry_dashboard', array(
+			'type'              => 'boolean',
+			'default'           => true,
+			'sanitize_callback' => 'rest_sanitize_boolean',
+		) );
+		add_settings_field(
+			'mailodds_telemetry_dashboard',
+			__( 'Telemetry Widget', 'mailodds-email-validation' ),
+			array( $this, 'render_telemetry_dashboard_field' ),
+			'mailodds',
+			'mailodds_advanced_section'
+		);
 	}
 
 	/**
@@ -266,13 +342,39 @@ class MailOdds_Admin {
 	}
 
 	/**
-	 * Render policy ID field.
+	 * Render policy ID field with dropdown populated from API.
 	 */
 	public function render_policy_field() {
 		$value = get_option( 'mailodds_policy_id', 0 );
-		echo '<input type="number" name="mailodds_policy_id" id="mailodds_policy_id" ';
-		echo 'value="' . esc_attr( $value ) . '" class="small-text" min="0" />';
-		echo '<p class="description">' . esc_html__( 'Optional. Apply a MailOdds policy to all validations. Leave 0 for default.', 'mailodds-email-validation' ) . '</p>';
+		$policies = false;
+
+		if ( $this->api->has_key() ) {
+			$policies = get_transient( 'mailodds_policies_list' );
+			if ( false === $policies ) {
+				$result = $this->api->list_policies();
+				if ( ! is_wp_error( $result ) ) {
+					$policies = isset( $result['policies'] ) ? $result['policies'] : ( is_array( $result ) ? $result : array() );
+					set_transient( 'mailodds_policies_list', $policies, 300 );
+				}
+			}
+		}
+
+		if ( ! empty( $policies ) && is_array( $policies ) ) {
+			echo '<select name="mailodds_policy_id" id="mailodds_policy_id">';
+			echo '<option value="0"' . selected( $value, 0, false ) . '>';
+			echo esc_html__( 'Default (no policy)', 'mailodds-email-validation' ) . '</option>';
+			foreach ( $policies as $policy ) {
+				$pid  = isset( $policy['id'] ) ? absint( $policy['id'] ) : 0;
+				$name = isset( $policy['name'] ) ? $policy['name'] : sprintf( 'Policy #%d', $pid );
+				echo '<option value="' . esc_attr( $pid ) . '"' . selected( $value, $pid, false ) . '>';
+				echo esc_html( $name ) . '</option>';
+			}
+			echo '</select>';
+		} else {
+			echo '<input type="number" name="mailodds_policy_id" id="mailodds_policy_id" ';
+			echo 'value="' . esc_attr( $value ) . '" class="small-text" min="0" />';
+		}
+		echo '<p class="description">' . esc_html__( 'Optional. Apply a MailOdds policy to all validations. Leave at default for none.', 'mailodds-email-validation' ) . '</p>';
 	}
 
 	/**
@@ -332,6 +434,39 @@ class MailOdds_Admin {
 		} elseif ( ! $enabled ) {
 			wp_clear_scheduled_hook( 'mailodds_cron_validate_users' );
 		}
+	}
+
+	/**
+	 * Render suppression pre-check toggle field.
+	 */
+	public function render_suppression_check_field() {
+		$enabled = get_option( 'mailodds_check_suppression', false );
+		echo '<label>';
+		echo '<input type="checkbox" name="mailodds_check_suppression" value="1"';
+		checked( $enabled );
+		echo ' /> ' . esc_html__( 'Check suppression list before validating (saves API credits)', 'mailodds-email-validation' ) . '</label>';
+	}
+
+	/**
+	 * Render webhook secret field.
+	 */
+	public function render_webhook_secret_field() {
+		$value = get_option( 'mailodds_webhook_secret', '' );
+		echo '<input type="text" name="mailodds_webhook_secret" id="mailodds_webhook_secret" ';
+		echo 'value="' . esc_attr( $value ) . '" class="regular-text" autocomplete="off" />';
+		echo '<p class="description">' . esc_html__( 'HMAC secret for verifying webhook payloads from MailOdds. Leave empty to disable webhooks.', 'mailodds-email-validation' ) . '</p>';
+	}
+
+	/**
+	 * Render telemetry dashboard toggle field.
+	 */
+	public function render_telemetry_dashboard_field() {
+		$enabled = get_option( 'mailodds_telemetry_dashboard', true );
+		echo '<label>';
+		echo '<input type="checkbox" name="mailodds_telemetry_dashboard" value="1"';
+		checked( $enabled );
+		echo ' /> ' . esc_html__( 'Show server-side telemetry in the dashboard widget', 'mailodds-email-validation' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'Disable if you prefer not to fetch telemetry data from the MailOdds API (GDPR/CCPA).', 'mailodds-email-validation' ) . '</p>';
 	}
 
 	/**
@@ -422,6 +557,20 @@ class MailOdds_Admin {
 			echo esc_html__( 'MailOdds is running in TEST MODE. Validations use test domains and do not consume credits.', 'mailodds-email-validation' );
 			echo '</p></div>';
 		}
+
+		// Suppression fail-open warning
+		$failopen_count = absint( get_transient( 'mailodds_suppression_failopen_count' ) );
+		if ( $failopen_count > 0 ) {
+			$since = get_transient( 'mailodds_suppression_failopen_since' );
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html( sprintf(
+				/* translators: 1: count, 2: date */
+				__( 'MailOdds: %1$d emails bypassed suppression check due to API errors since %2$s.', 'mailodds-email-validation' ),
+				$failopen_count,
+				$since ? $since : __( 'unknown', 'mailodds-email-validation' )
+			) );
+			echo '</p></div>';
+		}
 	}
 
 	/**
@@ -441,6 +590,9 @@ class MailOdds_Admin {
 
 	/**
 	 * Render dashboard widget content.
+	 *
+	 * Shows local stats (always available) plus server-side telemetry
+	 * when enabled and the API is reachable.
 	 */
 	public function render_dashboard_widget() {
 		if ( ! $this->api->has_key() ) {
@@ -456,69 +608,153 @@ class MailOdds_Admin {
 			return;
 		}
 
-		$stats = get_option( 'mailodds_daily_stats', array() );
-		$today = current_time( 'Y-m-d' );
+		if ( $this->api->is_test_mode() ) {
+			echo '<p><strong>' . esc_html__( 'TEST MODE', 'mailodds-email-validation' ) . '</strong></p>';
+		}
 
-		// Aggregate last 7 days
-		$totals = array(
-			'total'       => 0,
-			'valid'       => 0,
-			'invalid'     => 0,
-			'catch_all'   => 0,
-			'unknown'     => 0,
-			'do_not_mail' => 0,
-		);
-		$today_stats = isset( $stats[ $today ] ) ? $stats[ $today ] : $totals;
+		// Server-side telemetry (when enabled)
+		$telemetry_enabled = get_option( 'mailodds_telemetry_dashboard', true );
+		$telemetry_24h = null;
+		$telemetry_30d = null;
 
-		for ( $i = 0; $i < 7; $i++ ) {
-			$date = gmdate( 'Y-m-d', strtotime( "-{$i} days" ) );
-			if ( isset( $stats[ $date ] ) ) {
-				foreach ( $totals as $key => $val ) {
-					$totals[ $key ] += isset( $stats[ $date ][ $key ] ) ? $stats[ $date ][ $key ] : 0;
+		if ( $telemetry_enabled ) {
+			$telemetry_24h = get_transient( 'mailodds_telemetry_24h' );
+			if ( false === $telemetry_24h ) {
+				$result = $this->api->get_telemetry( '24h' );
+				if ( ! is_wp_error( $result ) ) {
+					// Privacy safeguard: strip topDomains before caching
+					unset( $result['topDomains'] );
+					$telemetry_24h = $result;
+					set_transient( 'mailodds_telemetry_24h', $telemetry_24h, 300 );
+				}
+			}
+
+			$telemetry_30d = get_transient( 'mailodds_telemetry_30d' );
+			if ( false === $telemetry_30d ) {
+				$result = $this->api->get_telemetry( '30d' );
+				if ( ! is_wp_error( $result ) ) {
+					unset( $result['topDomains'] );
+					$telemetry_30d = $result;
+					set_transient( 'mailodds_telemetry_30d', $telemetry_30d, 300 );
 				}
 			}
 		}
 
-		if ( $this->api->is_test_mode() ) {
-			echo '<p><strong>' . esc_html__( 'TEST MODE', 'mailodds-email-validation' ) . '</strong></p>';
+		if ( $telemetry_24h || $telemetry_30d ) {
+			// Server-side telemetry display
+			?>
+			<table class="widefat striped" style="border:0;">
+				<thead>
+					<tr>
+						<th></th>
+						<th><?php esc_html_e( 'Last 24h', 'mailodds-email-validation' ); ?></th>
+						<th><?php esc_html_e( 'Last 30 Days', 'mailodds-email-validation' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><strong><?php esc_html_e( 'Total', 'mailodds-email-validation' ); ?></strong></td>
+						<td><?php echo esc_html( $telemetry_24h ? ( isset( $telemetry_24h['total'] ) ? $telemetry_24h['total'] : 0 ) : '-' ); ?></td>
+						<td><?php echo esc_html( $telemetry_30d ? ( isset( $telemetry_30d['total'] ) ? $telemetry_30d['total'] : 0 ) : '-' ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Deliverable', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $telemetry_24h && isset( $telemetry_24h['deliverable'] ) ? $telemetry_24h['deliverable'] : '-' ); ?></td>
+						<td><?php echo esc_html( $telemetry_30d && isset( $telemetry_30d['deliverable'] ) ? $telemetry_30d['deliverable'] : '-' ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Rejected', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $telemetry_24h && isset( $telemetry_24h['rejected'] ) ? $telemetry_24h['rejected'] : '-' ); ?></td>
+						<td><?php echo esc_html( $telemetry_30d && isset( $telemetry_30d['rejected'] ) ? $telemetry_30d['rejected'] : '-' ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Unknown', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $telemetry_24h && isset( $telemetry_24h['unknown'] ) ? $telemetry_24h['unknown'] : '-' ); ?></td>
+						<td><?php echo esc_html( $telemetry_30d && isset( $telemetry_30d['unknown'] ) ? $telemetry_30d['unknown'] : '-' ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Credits Used', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $telemetry_24h && isset( $telemetry_24h['creditsUsed'] ) ? $telemetry_24h['creditsUsed'] : '-' ); ?></td>
+						<td><?php echo esc_html( $telemetry_30d && isset( $telemetry_30d['creditsUsed'] ) ? $telemetry_30d['creditsUsed'] : '-' ); ?></td>
+					</tr>
+				</tbody>
+			</table>
+			<?php
+			// Top rejection reasons (from 30d data)
+			if ( $telemetry_30d && ! empty( $telemetry_30d['topReasons'] ) && is_array( $telemetry_30d['topReasons'] ) ) {
+				echo '<p style="margin-top:8px;"><strong>' . esc_html__( 'Top Rejection Reasons (30d)', 'mailodds-email-validation' ) . '</strong></p>';
+				echo '<ul style="margin:4px 0 0 16px;list-style:disc;">';
+				foreach ( array_slice( $telemetry_30d['topReasons'], 0, 5 ) as $reason ) {
+					$label = isset( $reason['reason'] ) ? $reason['reason'] : '';
+					$count = isset( $reason['count'] ) ? $reason['count'] : 0;
+					echo '<li>' . esc_html( $label ) . ': ' . esc_html( $count ) . '</li>';
+				}
+				echo '</ul>';
+			}
+		} else {
+			// Fallback to local stats
+			$stats = get_option( 'mailodds_daily_stats', array() );
+			$today = current_time( 'Y-m-d' );
+
+			$totals = array(
+				'total'       => 0,
+				'valid'       => 0,
+				'invalid'     => 0,
+				'catch_all'   => 0,
+				'unknown'     => 0,
+				'do_not_mail' => 0,
+			);
+			$today_stats = isset( $stats[ $today ] ) ? $stats[ $today ] : $totals;
+
+			for ( $i = 0; $i < 7; $i++ ) {
+				$date = gmdate( 'Y-m-d', strtotime( "-{$i} days" ) );
+				if ( isset( $stats[ $date ] ) ) {
+					foreach ( $totals as $key => $val ) {
+						$totals[ $key ] += isset( $stats[ $date ][ $key ] ) ? $stats[ $date ][ $key ] : 0;
+					}
+				}
+			}
+
+			?>
+			<table class="widefat striped" style="border:0;">
+				<thead>
+					<tr>
+						<th></th>
+						<th><?php esc_html_e( 'Today', 'mailodds-email-validation' ); ?></th>
+						<th><?php esc_html_e( 'Last 7 Days', 'mailodds-email-validation' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><strong><?php esc_html_e( 'Total', 'mailodds-email-validation' ); ?></strong></td>
+						<td><?php echo esc_html( $today_stats['total'] ); ?></td>
+						<td><?php echo esc_html( $totals['total'] ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Valid', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $today_stats['valid'] ); ?></td>
+						<td><?php echo esc_html( $totals['valid'] ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Invalid', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $today_stats['invalid'] ); ?></td>
+						<td><?php echo esc_html( $totals['invalid'] ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Catch-All', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $today_stats['catch_all'] ); ?></td>
+						<td><?php echo esc_html( $totals['catch_all'] ); ?></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Do Not Mail', 'mailodds-email-validation' ); ?></td>
+						<td><?php echo esc_html( $today_stats['do_not_mail'] ); ?></td>
+						<td><?php echo esc_html( $totals['do_not_mail'] ); ?></td>
+					</tr>
+				</tbody>
+			</table>
+			<?php
 		}
 		?>
-		<table class="widefat striped" style="border:0;">
-			<thead>
-				<tr>
-					<th></th>
-					<th><?php esc_html_e( 'Today', 'mailodds-email-validation' ); ?></th>
-					<th><?php esc_html_e( 'Last 7 Days', 'mailodds-email-validation' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td><strong><?php esc_html_e( 'Total', 'mailodds-email-validation' ); ?></strong></td>
-					<td><?php echo esc_html( $today_stats['total'] ); ?></td>
-					<td><?php echo esc_html( $totals['total'] ); ?></td>
-				</tr>
-				<tr>
-					<td><?php esc_html_e( 'Valid', 'mailodds-email-validation' ); ?></td>
-					<td><?php echo esc_html( $today_stats['valid'] ); ?></td>
-					<td><?php echo esc_html( $totals['valid'] ); ?></td>
-				</tr>
-				<tr>
-					<td><?php esc_html_e( 'Invalid', 'mailodds-email-validation' ); ?></td>
-					<td><?php echo esc_html( $today_stats['invalid'] ); ?></td>
-					<td><?php echo esc_html( $totals['invalid'] ); ?></td>
-				</tr>
-				<tr>
-					<td><?php esc_html_e( 'Catch-All', 'mailodds-email-validation' ); ?></td>
-					<td><?php echo esc_html( $today_stats['catch_all'] ); ?></td>
-					<td><?php echo esc_html( $totals['catch_all'] ); ?></td>
-				</tr>
-				<tr>
-					<td><?php esc_html_e( 'Do Not Mail', 'mailodds-email-validation' ); ?></td>
-					<td><?php echo esc_html( $today_stats['do_not_mail'] ); ?></td>
-					<td><?php echo esc_html( $totals['do_not_mail'] ); ?></td>
-				</tr>
-			</tbody>
-		</table>
 		<p style="margin-top:12px;">
 			<a href="<?php echo esc_url( admin_url( 'options-general.php?page=mailodds' ) ); ?>">
 				<?php esc_html_e( 'Settings', 'mailodds-email-validation' ); ?>
