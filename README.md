@@ -13,6 +13,8 @@ Official WordPress plugin for the [MailOdds Email Validation API](https://mailod
 
 Get a free API key at [mailodds.com/register](https://mailodds.com/register) (includes 1,000 free validations).
 
+Auto-updates are supported via the GitHub releases API. When a new version is published here, WordPress will notify you in the Plugins screen.
+
 ## Supported Forms
 
 | Form | Hook Point |
@@ -30,50 +32,146 @@ Each integration is toggled individually in **Settings > MailOdds > Form Integra
 
 When a user submits a form with an email address, the plugin:
 
-1. Checks the transient cache (24h TTL) for a previous result
-2. If uncached, calls the MailOdds API with a 5-second timeout
-3. Caches the result for 24 hours to save credits on retries
-4. Blocks the form if the action is `reject` (configurable threshold)
-5. If the API is unreachable, allows the form through (fail-open design)
+1. Optionally checks the suppression list (saves an API credit if the email is suppressed)
+2. Checks the transient cache (24h TTL) for a previous result
+3. If uncached, calls the MailOdds API with a 10-second timeout
+4. Caches the result for 24 hours to save credits on retries
+5. Blocks the form if the action is `reject` (configurable threshold)
+6. If the API is unreachable, allows the form through (fail-open design)
 
 ## Configuration
+
+### Settings (Settings > MailOdds)
 
 | Setting | Options | Default |
 |---------|---------|---------|
 | **API Key** | `mo_live_*` or `mo_test_*` | Required |
 | **Validation Depth** | Enhanced (full SMTP) / Standard (syntax + MX) | Enhanced |
 | **Block Threshold** | Reject only / Reject + risky | Reject only |
-| **Policy ID** | Custom MailOdds policy | None |
-| **Weekly Cron** | Validate 50 unvalidated users/week | Disabled |
+| **Policy** | Dropdown populated from your MailOdds policies | None |
+| **Suppression Pre-check** | Check suppression list before validating | Disabled |
+| **Weekly Cron** | Validate unvalidated users weekly | Disabled |
+| **Webhook Secret** | HMAC secret for async job completion webhooks | Disabled |
+| **Telemetry Widget** | Show server-side telemetry in dashboard widget | Enabled |
 
 **Reject only** blocks invalid and disposable emails. **Reject + risky** also blocks catch-all domains and role accounts (info@, admin@, etc).
+
+### Suppression List (Tools > MailOdds Suppressions)
+
+Manage your account suppression list directly from WordPress:
+
+- View entries with search, type filter, and pagination
+- Add or remove individual entries
+- View suppression stats (total, by type)
+- Enable suppression pre-check in Settings to automatically block suppressed emails before they consume API credits
+
+### Validation Policies (Settings > MailOdds Policies)
+
+Create and manage validation policies:
+
+- List all policies with rule counts
+- Create custom policies or use presets (strict, permissive, smtp_required)
+- Add and remove individual rules
+- Test a policy against any email address
+- Select the active policy in the main Settings page
+
+### Bulk Validation (Tools > MailOdds Bulk)
+
+Validate all existing WordPress users:
+
+- **Under 100 users**: Synchronous batch validation (immediate results)
+- **100+ users**: Creates an async job via the MailOdds Jobs API with real-time progress polling
+- Resume capability: reloading the page picks up where a running job left off
+- Cancel button to abort in-progress jobs
+- Job history table showing past bulk validation jobs
+
+### Dashboard Widget
+
+The dashboard widget shows validation statistics:
+
+- **With telemetry enabled**: Server-side data from the MailOdds API (24h and 30d totals, deliverable/rejected/unknown counts, credits used, top rejection reasons)
+- **With telemetry disabled**: Local stats tracked by the plugin (today and 7-day breakdown)
+- Privacy safeguard: top domains are never cached (displayed from live API response only)
+
+## WP REST API
+
+Four endpoints are available under `/wp-json/mailodds/v1/`, all requiring `manage_options` capability:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/validate` | Validate a single email |
+| POST | `/validate/batch` | Validate up to 100 emails |
+| POST | `/suppression/check` | Check if an email is suppressed |
+| GET | `/status` | Plugin health and config |
+
+## Webhook Receiver
+
+The plugin can receive `job.completed` webhooks from MailOdds to instantly apply bulk validation results:
+
+1. Set a webhook secret in **Settings > MailOdds > Advanced > Webhook Secret**
+2. Configure the webhook URL in your MailOdds dashboard: `https://yoursite.com/wp-json/mailodds/v1/webhook`
+3. When a job completes, results are automatically applied to WordPress user meta
+
+The endpoint verifies HMAC-SHA256 signatures and is closed by default (rejects all requests when no secret is configured).
 
 ## WP-CLI Commands
 
 ```bash
-# Validate a single email
+# Single validation
 wp mailodds validate user@example.com
+wp mailodds validate user@example.com --depth=standard --format=json
 
-# Validate with JSON output
-wp mailodds validate user@example.com --format=json
-
-# Bulk validate all unvalidated WordPress users
+# Bulk validate existing users
 wp mailodds bulk
-
-# Bulk validate with batch size and limit
 wp mailodds bulk --batch=100 --limit=500
 
-# Show plugin status and stats
+# Plugin status
 wp mailodds status
+
+# Suppression list management
+wp mailodds suppression list
+wp mailodds suppression list --type=hard_bounce --per-page=50
+wp mailodds suppression add spam@example.com
+wp mailodds suppression add spam@example.com --type=complaint
+wp mailodds suppression remove spam@example.com
+wp mailodds suppression check user@example.com
+wp mailodds suppression stats
+
+# Bulk validation jobs
+wp mailodds jobs list
+wp mailodds jobs create
+wp mailodds jobs status <job_id>
+wp mailodds jobs results <job_id>
+wp mailodds jobs cancel <job_id>
+
+# Validation policies
+wp mailodds policies list
+wp mailodds policies create "My Policy"
+wp mailodds policies create "Strict" --preset=strict
+wp mailodds policies test user@example.com 42
+wp mailodds policies delete 42
 ```
 
 ## Admin Features
 
-- **Settings page**: API key, validation depth, block threshold, form toggles
-- **Dashboard widget**: 7-day validation stats (accept/reject/error counts)
-- **Bulk validation tool**: Tools > MailOdds Bulk -- validate existing users
-- **User meta**: Each validated user stores `_mailodds_status`, `_mailodds_action`, `_mailodds_validated_at`
+- **Settings page**: API key, depth, threshold, policy dropdown, form toggles, cron, suppression pre-check, webhook secret, telemetry toggle
+- **Dashboard widget**: Server-side telemetry with local stats fallback
+- **Bulk validation**: Smart routing (sync for small batches, async jobs for large)
+- **Suppression list page**: Full CRUD with search and filtering
+- **Policies page**: Create, delete, preset, rules, test sandbox
+- **User meta**: `_mailodds_status`, `_mailodds_action`, `_mailodds_validated_at`
 - **Test mode badge**: Displays when using an `mo_test_` API key
+- **Fail-open admin notice**: Warns when suppression checks bypass due to API errors
+- **Auto-updates**: Checks GitHub releases every 12 hours
+
+## Cron (Scheduled Validation)
+
+When enabled, the plugin validates unvalidated users on a weekly schedule using a two-phase cron pattern optimized for shared hosting:
+
+1. **Phase A (fire)**: Creates a validation job via the API and stores the job ID
+2. **Phase B (check)**: Every 15 minutes, checks job status. When complete, applies results to user meta
+
+This avoids long-running PHP processes that hit `max_execution_time` limits.
 
 ## Manual Integration (without plugin)
 
@@ -156,7 +254,7 @@ The plugin branches on the `action` field from the API response:
 
 ## Uninstall
 
-Deactivating the plugin clears the cron schedule. Deleting the plugin removes all options and user meta from the database (clean uninstall).
+Deactivating the plugin clears the cron schedule. Deleting the plugin removes all options, transients, and user meta from the database (clean uninstall).
 
 ## Links
 
