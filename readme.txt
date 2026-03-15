@@ -106,21 +106,57 @@ Use an API key with the `mo_test_` prefix to enable test mode. Test mode:
 
 Yes. Enable the WooCommerce integration in Settings > MailOdds. It validates emails on both My Account registration and guest checkout.
 
-= What happens if the API is down? =
-
-The plugin uses fail-open design. If the MailOdds API is unreachable (timeout, network error), the form submission proceeds normally. No user is blocked due to an API outage.
-
-= Does it cache results? =
-
-Yes. Each email validation result is cached for 24 hours using WordPress transients. This prevents re-validating the same email on retries or double-submits.
-
 = Do I need WooCommerce? =
 
 No. The plugin works with plain WordPress registration out of the box. WooCommerce, WPForms, Gravity Forms, and Contact Form 7 integrations are optional and enabled individually.
 
+= What happens if the API is down? =
+
+The plugin uses fail-open design. If the MailOdds API is unreachable (timeout, network error), the form submission proceeds normally. No user is blocked due to an API outage.
+
+= How do I connect my WooCommerce store? =
+
+Go to Settings > MailOdds > Store Connection and click Connect. The plugin creates a WooCommerce REST API key, completes a secure handshake with MailOdds, and begins syncing your product catalog automatically. Products are kept in sync on every create, update, and delete.
+
+= How do I disconnect my store? =
+
+Click Disconnect in Settings > MailOdds > Store Connection. The plugin revokes the WooCommerce API key and notifies MailOdds. If you uninstall the plugin entirely, the API key is also revoked automatically.
+
+= How do I validate existing users in bulk? =
+
+Go to Tools > MailOdds Bulk Validate. Select a batch size and click Start. For large lists, the plugin creates an async job and polls for results. You can also run `wp mailodds bulk --batch=100 --limit=500` from the command line.
+
+= Can I automate validation on a schedule? =
+
+Yes. Enable the weekly cron in Settings > MailOdds. It validates up to 50 unvalidated users per run. For larger sites, use `wp cron event run mailodds_cron_validate_users` to trigger it manually or adjust the schedule with a cron management plugin.
+
+= What are WP-CLI commands available? =
+
+Three commands: `wp mailodds validate user@example.com` (single email), `wp mailodds bulk` (batch validate users), and `wp mailodds status` (show API key status, cached results, and cron schedule). Add `--format=json` for machine-readable output.
+
+= How do I receive real-time validation events? =
+
+The plugin registers a webhook endpoint at `/wp-json/mailodds/v1/webhook`. Configure your webhook URL and secret in the MailOdds dashboard. The plugin verifies the `X-MailOdds-Signature` header using HMAC-SHA256 before processing any event.
+
+= What is a suppression list? =
+
+Emails that hard-bounce or generate complaints are automatically added to your suppression list. The plugin checks this list before sending and skips suppressed addresses. You can view and manage suppressions in the MailOdds dashboard.
+
+= What are policies? =
+
+Policies are custom validation rules you create in the MailOdds dashboard. Enter a Policy ID in Settings > MailOdds to apply it. For example, a policy can reject all free-provider emails or require MX records from specific domains.
+
+= How do I set up test mode? =
+
+Use an API key with the `mo_test_` prefix. Test mode does not consume credits and shows a badge in the admin. Use test domains for predictable results: `*@deliverable.mailodds.com` (valid), `*@invalid.mailodds.com` (invalid), `*@disposable.mailodds.com` (disposable).
+
+= How does the plugin update? =
+
+The plugin checks GitHub releases for new versions. When an update is available, it appears in Dashboard > Updates like any other plugin. Click Update to install. No wordpress.org account is needed.
+
 = How many credits does it use? =
 
-One credit per unique email validation. Cached results and test mode do not consume credits.
+One credit per unique email validation. Cached results (24 hours) and test mode do not consume credits. Bulk validation uses one credit per email in the batch.
 
 == Changelog ==
 

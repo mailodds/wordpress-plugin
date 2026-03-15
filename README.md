@@ -1,6 +1,6 @@
 # MailOdds Email Validation for WordPress
 
-Official WordPress plugin for the [MailOdds Email Validation API](https://mailodds.com). Validate emails on registration, WooCommerce checkout, and popular form plugins. Block fake signups, disposable emails, and invalid addresses in real time.
+Official WordPress plugin for the [MailOdds Email Validation API](https://mailodds.com). Validate emails on registration, WooCommerce checkout, and popular form plugins. Block fake signups, disposable emails, and invalid addresses in real time. Part of the [MailOdds email deliverability platform](https://mailodds.com/email-deliverability-platform).
 
 [![WordPress 5.9+](https://img.shields.io/badge/WordPress-5.9%2B-blue)](https://wordpress.org) [![PHP 7.4+](https://img.shields.io/badge/PHP-7.4%2B-purple)](https://www.php.net) [![License: GPL v2](https://img.shields.io/badge/License-GPLv2-green)](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -11,7 +11,7 @@ Official WordPress plugin for the [MailOdds Email Validation API](https://mailod
 3. Activate via **Plugins** menu
 4. Go to **Settings > MailOdds** and enter your API key
 
-Get a free API key at [mailodds.com/register](https://mailodds.com/register) (includes 1,000 free validations).
+Get a free API key at [mailodds.com/register](https://mailodds.com/register) (includes 1,000 free validations). See [pricing](https://mailodds.com/pricing) for plan details.
 
 Auto-updates are supported via the GitHub releases API. When a new version is published here, WordPress will notify you in the Plugins screen.
 
