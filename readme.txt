@@ -4,7 +4,7 @@ Tags: email validation, email verification, spam prevention, WooCommerce, regist
 Requires at least: 5.9
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,7 @@ MailOdds Email Validation integrates the [MailOdds API](https://mailodds.com) in
 * WP-CLI commands for scripting and automation
 * Weekly cron job for periodic user validation
 * Policy support for custom validation rules
+* WooCommerce store connection with product catalog sync
 * Test mode with special test domains (no credits consumed)
 * Graceful degradation: if the API is unreachable, forms still work
 
@@ -123,6 +124,22 @@ One credit per unique email validation. Cached results and test mode do not cons
 
 == Changelog ==
 
+= 2.1.0 =
+* WooCommerce store connection: handshake flow, API key generation, connect/disconnect UI
+* Product catalog sync on WooCommerce product create, update, and delete hooks
+* AJAX-based store management with nonce verification
+* Externalized store JavaScript using wp_localize_script
+* WC API key revocation on disconnect and plugin uninstall
+* Security: SSRF validation, HTTPS enforcement, constant-time secret comparison
+
+= 2.0.0 =
+* Bulk validation tool for existing WordPress users
+* Suppression list management
+* Policy-based validation rules
+* Webhook receiver for real-time validation events
+* REST API endpoints for headless integrations
+* WP-CLI enhancements
+
 = 1.0.2 =
 * Fixed text domain to match wordpress.org slug (mailodds-email-validation)
 * Shortened readme short description to meet 150-character limit
@@ -147,6 +164,12 @@ One credit per unique email validation. Cached results and test mode do not cons
 * Transient-based caching
 
 == Upgrade Notice ==
+
+= 2.1.0 =
+WooCommerce store connection with product catalog sync. Connect your store to MailOdds for e-commerce event tracking.
+
+= 2.0.0 =
+Major update: bulk validation, suppression lists, policies, webhooks, and REST API.
 
 = 1.0.2 =
 Text domain fix for wordpress.org directory compliance.

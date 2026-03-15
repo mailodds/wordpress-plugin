@@ -3,7 +3,7 @@
  * Plugin Name: MailOdds Email Validation
  * Plugin URI:  https://mailodds.com/integrations/wordpress
  * Description: Validate emails on registration, checkout, and contact forms using the MailOdds API. Blocks fake signups, disposable emails, and invalid addresses.
- * Version:     2.0.0
+ * Version:     2.1.0
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Author:      MailOdds
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'MAILODDS_VERSION', '2.0.0' );
+define( 'MAILODDS_VERSION', '2.1.0' );
 define( 'MAILODDS_PLUGIN_FILE', __FILE__ );
 define( 'MAILODDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILODDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -34,6 +34,8 @@ require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-policies.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-updater.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-rest.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-webhook.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-handshake.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-catalog.php';
 
 // WP-CLI commands (only in CLI context)
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -58,6 +60,20 @@ final class MailOdds {
 	 * @var MailOdds_API
 	 */
 	public $api;
+
+	/**
+	 * Handshake handler for store connection.
+	 *
+	 * @var MailOdds_Handshake
+	 */
+	public $handshake;
+
+	/**
+	 * Catalog sync hook handler.
+	 *
+	 * @var MailOdds_Catalog
+	 */
+	public $catalog;
 
 	/**
 	 * Get singleton instance.
@@ -87,6 +103,9 @@ final class MailOdds {
 		new MailOdds_Updater();
 		new MailOdds_REST( $this->api );
 		new MailOdds_Webhook( $this->api );
+		$this->handshake = new MailOdds_Handshake();
+		$this->catalog   = new MailOdds_Catalog();
+		$this->catalog->register_hooks();
 
 		// WP-CLI
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {

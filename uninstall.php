@@ -9,6 +9,17 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+// Revoke WC API key before deleting options
+$wc_key_id = get_option( 'mailodds_wc_key_id', 0 );
+if ( $wc_key_id ) {
+	global $wpdb;
+	$wpdb->delete(
+		$wpdb->prefix . 'woocommerce_api_keys',
+		array( 'key_id' => $wc_key_id ),
+		array( '%d' )
+	);
+}
+
 // Delete options
 delete_option( 'mailodds_api_key' );
 delete_option( 'mailodds_depth' );
@@ -22,6 +33,11 @@ delete_option( 'mailodds_integrations' );
 delete_option( 'mailodds_check_suppression' );
 delete_option( 'mailodds_webhook_secret' );
 delete_option( 'mailodds_telemetry_dashboard' );
+delete_option( 'mailodds_store_connected' );
+delete_option( 'mailodds_store_id' );
+delete_option( 'mailodds_handshake_secret' );
+delete_option( 'mailodds_api_base' );
+delete_option( 'mailodds_wc_key_id' );
 
 // Delete all transients (cached validation results + plugin state)
 global $wpdb;

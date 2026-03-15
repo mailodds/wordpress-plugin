@@ -36,6 +36,10 @@ class MailOdds_Admin {
 		add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'update_option_mailodds_api_key', array( $this, 'flush_transient_cache' ) );
+
+		// AJAX handlers for store connection
+		add_action( 'wp_ajax_mailodds_connect_store', array( $this, 'ajax_connect_store' ) );
+		add_action( 'wp_ajax_mailodds_disconnect_store', array( $this, 'ajax_disconnect_store' ) );
 	}
 
 	/**
@@ -91,6 +95,23 @@ class MailOdds_Admin {
 				'ajaxurl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( $nonce ),
 			) );
+
+			// Store connect/disconnect script (settings page only)
+			if ( 'settings_page_mailodds' === $hook ) {
+				wp_enqueue_script(
+					'mailodds-store',
+					MAILODDS_PLUGIN_URL . 'assets/js/store.js',
+					array( 'jquery' ),
+					MAILODDS_VERSION,
+					true
+				);
+
+				wp_localize_script( 'mailodds-store', 'mailodds_store', array(
+					'ajaxurl'            => admin_url( 'admin-ajax.php' ),
+					'nonce'              => wp_create_nonce( 'mailodds-store-nonce' ),
+					'confirm_disconnect' => __( 'Disconnect your store? Product sync will stop.', 'mailodds-email-validation' ),
+				) );
+			}
 		}
 	}
 
@@ -277,6 +298,22 @@ class MailOdds_Admin {
 			array( $this, 'render_telemetry_dashboard_field' ),
 			'mailodds',
 			'mailodds_advanced_section'
+		);
+
+		// Store Connection section
+		add_settings_section(
+			'mailodds_store_section',
+			__( 'Store Connection', 'mailodds-email-validation' ),
+			array( $this, 'render_store_section' ),
+			'mailodds'
+		);
+
+		add_settings_field(
+			'mailodds_store_status',
+			__( 'Connection Status', 'mailodds-email-validation' ),
+			array( $this, 'render_store_status_field' ),
+			'mailodds',
+			'mailodds_store_section'
 		);
 	}
 
@@ -769,5 +806,111 @@ class MailOdds_Admin {
 			</a>
 		</p>
 		<?php
+	}
+
+	/**
+	 * Render store connection section description.
+	 */
+	public function render_store_section() {
+		echo '<p>' . esc_html__(
+			'Connect your WooCommerce store to sync products for personalized email campaigns.',
+			'mailodds-email-validation'
+		) . '</p>';
+	}
+
+	/**
+	 * Render store connection status and action button.
+	 */
+	public function render_store_status_field() {
+		$is_connected = get_option( 'mailodds_store_connected', false );
+		$store_id     = get_option( 'mailodds_store_id', '' );
+		$has_wc       = class_exists( 'WooCommerce' );
+
+		if ( $is_connected && ! empty( $store_id ) ) {
+			echo '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+			echo '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981;"></span>';
+			echo '<strong>' . esc_html__( 'Connected', 'mailodds-email-validation' ) . '</strong>';
+			echo '</div>';
+			echo '<p class="description">' . esc_html( sprintf(
+				/* translators: %s: store ID */
+				__( 'Store ID: %s', 'mailodds-email-validation' ),
+				$store_id
+			) ) . '</p>';
+			echo '<p style="margin-top:8px;">';
+			echo '<button type="button" class="button button-secondary" id="mailodds-disconnect-store">';
+			echo esc_html__( 'Disconnect Store', 'mailodds-email-validation' );
+			echo '</button>';
+			echo '<span id="mailodds-store-spinner" class="spinner" style="float:none;margin-top:0;"></span>';
+			echo '<span id="mailodds-store-message" style="margin-left:8px;"></span>';
+			echo '</p>';
+		} else {
+			echo '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+			echo '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#a1a1aa;"></span>';
+			echo '<strong>' . esc_html__( 'Not Connected', 'mailodds-email-validation' ) . '</strong>';
+			echo '</div>';
+
+			if ( ! $has_wc ) {
+				echo '<p class="description" style="color:#b91c1c;">';
+				echo esc_html__( 'WooCommerce is not active. Install and activate WooCommerce to connect your store.', 'mailodds-email-validation' );
+				echo '</p>';
+			} elseif ( ! $this->api->has_key() ) {
+				echo '<p class="description">';
+				echo esc_html__( 'Configure your API key above before connecting your store.', 'mailodds-email-validation' );
+				echo '</p>';
+			} else {
+				echo '<p style="margin-top:8px;">';
+				echo '<button type="button" class="button button-primary" id="mailodds-connect-store">';
+				echo esc_html__( 'Connect Store', 'mailodds-email-validation' );
+				echo '</button>';
+				echo '<span id="mailodds-store-spinner" class="spinner" style="float:none;margin-top:0;"></span>';
+				echo '<span id="mailodds-store-message" style="margin-left:8px;"></span>';
+				echo '</p>';
+				echo '<p class="description" style="margin-top:4px;">';
+				echo esc_html__( 'Creates read-only WooCommerce API keys and registers your store with MailOdds.', 'mailodds-email-validation' );
+				echo '</p>';
+			}
+		}
+
+	}
+
+	/**
+	 * AJAX handler: connect store.
+	 */
+	public function ajax_connect_store() {
+		check_ajax_referer( 'mailodds-store-nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+		}
+
+		$handshake = new MailOdds_Handshake();
+		$result    = $handshake->connect();
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array(
+			'message'  => __( 'Store connected successfully.', 'mailodds-email-validation' ),
+			'store_id' => isset( $result['store_id'] ) ? $result['store_id'] : '',
+		) );
+	}
+
+	/**
+	 * AJAX handler: disconnect store.
+	 */
+	public function ajax_disconnect_store() {
+		check_ajax_referer( 'mailodds-store-nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Permission denied.' ) );
+		}
+
+		$handshake = new MailOdds_Handshake();
+		$handshake->disconnect();
+
+		wp_send_json_success( array(
+			'message' => __( 'Store disconnected.', 'mailodds-email-validation' ),
+		) );
 	}
 }
