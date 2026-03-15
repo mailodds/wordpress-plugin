@@ -262,6 +262,9 @@ Deactivating the plugin clears the cron schedule. Deleting the plugin removes al
 - [API Documentation](https://mailodds.com/docs)
 - [Developer Quickstart](https://mailodds.com/developers)
 - [All SDKs](https://mailodds.com/sdks)
+- [Email Deliverability Platform](https://mailodds.com/email-deliverability-platform)
+- [Email Deliverability Guide](https://mailodds.com/guides/email-deliverability)
+- [Pricing](https://mailodds.com/pricing)
 
 ## License
 
