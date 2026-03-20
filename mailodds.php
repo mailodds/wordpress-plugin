@@ -3,7 +3,7 @@
  * Plugin Name: MailOdds Email Validation
  * Plugin URI:  https://mailodds.com/integrations/wordpress
  * Description: Validate emails on registration, checkout, and contact forms using the MailOdds API. Blocks fake signups, disposable emails, and invalid addresses.
- * Version:     2.1.0
+ * Version:     3.0.0
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Author:      MailOdds
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'MAILODDS_VERSION', '2.1.0' );
+define( 'MAILODDS_VERSION', '3.0.0' );
 define( 'MAILODDS_PLUGIN_FILE', __FILE__ );
 define( 'MAILODDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILODDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -36,6 +36,13 @@ require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-rest.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-webhook.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-handshake.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-catalog.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-sender.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-domains.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-deliverability.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-monitoring.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-spam-check.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-engagement.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-lists.php';
 
 // WP-CLI commands (only in CLI context)
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -106,6 +113,15 @@ final class MailOdds {
 		$this->handshake = new MailOdds_Handshake();
 		$this->catalog   = new MailOdds_Catalog();
 		$this->catalog->register_hooks();
+
+		// Email sending, domains, deliverability, monitoring, engagement, lists
+		new MailOdds_Sender( $this->api );
+		new MailOdds_Domains( $this->api );
+		new MailOdds_Deliverability( $this->api );
+		new MailOdds_Monitoring( $this->api );
+		new MailOdds_Spam_Check( $this->api );
+		new MailOdds_Engagement( $this->api );
+		new MailOdds_Lists( $this->api );
 
 		// WP-CLI
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {

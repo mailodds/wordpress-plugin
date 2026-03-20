@@ -74,6 +74,62 @@ class MailOdds_CLI {
 		WP_CLI::add_command( 'mailodds policies create', array( $instance, 'policies_create' ) );
 		WP_CLI::add_command( 'mailodds policies test', array( $instance, 'policies_test' ) );
 		WP_CLI::add_command( 'mailodds policies delete', array( $instance, 'policies_delete' ) );
+
+		// Sending domain commands
+		WP_CLI::add_command( 'mailodds domains list', array( $instance, 'domains_list' ) );
+		WP_CLI::add_command( 'mailodds domains add', array( $instance, 'domains_add' ) );
+		WP_CLI::add_command( 'mailodds domains verify', array( $instance, 'domains_verify' ) );
+		WP_CLI::add_command( 'mailodds domains delete', array( $instance, 'domains_delete' ) );
+		WP_CLI::add_command( 'mailodds domains score', array( $instance, 'domains_score' ) );
+
+		// Deliverability commands
+		WP_CLI::add_command( 'mailodds bounces summary', array( $instance, 'bounces_summary' ) );
+		WP_CLI::add_command( 'mailodds bounces stats', array( $instance, 'bounces_stats' ) );
+		WP_CLI::add_command( 'mailodds complaints', array( $instance, 'complaints' ) );
+		WP_CLI::add_command( 'mailodds reputation', array( $instance, 'reputation' ) );
+		WP_CLI::add_command( 'mailodds sender-health', array( $instance, 'sender_health' ) );
+		WP_CLI::add_command( 'mailodds sending-stats', array( $instance, 'sending_stats' ) );
+
+		// DMARC commands
+		WP_CLI::add_command( 'mailodds dmarc list', array( $instance, 'dmarc_list' ) );
+		WP_CLI::add_command( 'mailodds dmarc add', array( $instance, 'dmarc_add' ) );
+		WP_CLI::add_command( 'mailodds dmarc verify', array( $instance, 'dmarc_verify' ) );
+		WP_CLI::add_command( 'mailodds dmarc sources', array( $instance, 'dmarc_sources' ) );
+		WP_CLI::add_command( 'mailodds dmarc recommendation', array( $instance, 'dmarc_recommendation' ) );
+
+		// Blacklist commands
+		WP_CLI::add_command( 'mailodds blacklist list', array( $instance, 'blacklist_list' ) );
+		WP_CLI::add_command( 'mailodds blacklist add', array( $instance, 'blacklist_add' ) );
+		WP_CLI::add_command( 'mailodds blacklist check', array( $instance, 'blacklist_check' ) );
+		WP_CLI::add_command( 'mailodds blacklist history', array( $instance, 'blacklist_history' ) );
+
+		// Server test commands
+		WP_CLI::add_command( 'mailodds server-test run', array( $instance, 'server_test_run' ) );
+		WP_CLI::add_command( 'mailodds server-test get', array( $instance, 'server_test_get' ) );
+		WP_CLI::add_command( 'mailodds server-test list', array( $instance, 'server_test_list' ) );
+
+		// Alert rule commands
+		WP_CLI::add_command( 'mailodds alerts list', array( $instance, 'alerts_list' ) );
+		WP_CLI::add_command( 'mailodds alerts create', array( $instance, 'alerts_create' ) );
+		WP_CLI::add_command( 'mailodds alerts delete', array( $instance, 'alerts_delete' ) );
+
+		// Engagement commands
+		WP_CLI::add_command( 'mailodds engagement summary', array( $instance, 'engagement_summary' ) );
+		WP_CLI::add_command( 'mailodds engagement score', array( $instance, 'engagement_score' ) );
+		WP_CLI::add_command( 'mailodds engagement disengaged', array( $instance, 'engagement_disengaged' ) );
+
+		// OOO commands
+		WP_CLI::add_command( 'mailodds ooo check', array( $instance, 'ooo_check' ) );
+		WP_CLI::add_command( 'mailodds ooo list', array( $instance, 'ooo_list' ) );
+
+		// Spam check commands
+		WP_CLI::add_command( 'mailodds spam-check run', array( $instance, 'spam_check_run' ) );
+
+		// Subscriber list commands
+		WP_CLI::add_command( 'mailodds lists list', array( $instance, 'lists_list' ) );
+		WP_CLI::add_command( 'mailodds lists create', array( $instance, 'lists_create' ) );
+		WP_CLI::add_command( 'mailodds lists delete', array( $instance, 'lists_delete' ) );
+		WP_CLI::add_command( 'mailodds lists subscribe', array( $instance, 'lists_subscribe' ) );
 	}
 
 	/**
@@ -760,5 +816,512 @@ class MailOdds_CLI {
 		}
 
 		WP_CLI::success( "Policy $id deleted." );
+	}
+
+	// =========================================================================
+	// Sending domain commands
+	// =========================================================================
+
+	public function domains_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_sending_domains();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$domains = isset( $result['domains'] ) ? $result['domains'] : array();
+		if ( empty( $domains ) ) {
+			WP_CLI::line( 'No sending domains found.' );
+			return;
+		}
+		WP_CLI\Utils\format_items( 'table', $domains, array( 'id', 'domain', 'status', 'created_at' ) );
+	}
+
+	public function domains_add( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->create_sending_domain( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'Domain added. Configure DNS records shown below:' );
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function domains_verify( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->verify_sending_domain( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function domains_delete( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->delete_sending_domain( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'Domain deleted.' );
+	}
+
+	public function domains_score( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_identity_score( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// Deliverability commands
+	// =========================================================================
+
+	public function bounces_summary( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_bounce_stats_summary();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function bounces_stats( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$params = array();
+		if ( isset( $assoc_args['days'] ) ) {
+			$params['days'] = absint( $assoc_args['days'] );
+		}
+		$result = $this->api->get_bounce_stats( $params );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function complaints( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_complaint_assessment();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function reputation( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_reputation();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function sender_health( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_sender_health();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function sending_stats( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_sending_stats();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// DMARC commands
+	// =========================================================================
+
+	public function dmarc_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_dmarc_domains();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$domains = isset( $result['domains'] ) ? $result['domains'] : array();
+		if ( empty( $domains ) ) {
+			WP_CLI::line( 'No DMARC domains found.' );
+			return;
+		}
+		WP_CLI\Utils\format_items( 'table', $domains, array( 'id', 'domain', 'status' ) );
+	}
+
+	public function dmarc_add( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->add_dmarc_domain( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'DMARC domain added.' );
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function dmarc_verify( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->verify_dmarc_domain( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function dmarc_sources( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_dmarc_sources( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function dmarc_recommendation( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_dmarc_recommendation( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// Blacklist commands
+	// =========================================================================
+
+	public function blacklist_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_blacklist_monitors();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$monitors = isset( $result['monitors'] ) ? $result['monitors'] : array();
+		if ( empty( $monitors ) ) {
+			WP_CLI::line( 'No blacklist monitors found.' );
+			return;
+		}
+		WP_CLI\Utils\format_items( 'table', $monitors, array( 'id', 'host', 'type', 'status' ) );
+	}
+
+	public function blacklist_add( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$type = isset( $assoc_args['type'] ) ? $assoc_args['type'] : 'ip';
+		$result = $this->api->add_blacklist_monitor( array( 'host' => $args[0], 'type' => $type ) );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'Blacklist monitor added.' );
+	}
+
+	public function blacklist_check( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->run_blacklist_check( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function blacklist_history( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_blacklist_history( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// Server test commands
+	// =========================================================================
+
+	public function server_test_run( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->run_server_test( array( 'hostname' => $args[0] ) );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function server_test_get( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_server_test( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function server_test_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_server_tests();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// Alert rule commands
+	// =========================================================================
+
+	public function alerts_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_alert_rules();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$rules = isset( $result['rules'] ) ? $result['rules'] : array();
+		if ( empty( $rules ) ) {
+			WP_CLI::line( 'No alert rules found.' );
+			return;
+		}
+		WP_CLI\Utils\format_items( 'table', $rules, array( 'id', 'metric', 'threshold', 'channel', 'enabled' ) );
+	}
+
+	public function alerts_create( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$metric    = isset( $assoc_args['metric'] ) ? $assoc_args['metric'] : '';
+		$threshold = isset( $assoc_args['threshold'] ) ? floatval( $assoc_args['threshold'] ) : 0;
+		$channel   = isset( $assoc_args['channel'] ) ? $assoc_args['channel'] : 'email';
+		if ( empty( $metric ) ) {
+			WP_CLI::error( 'Metric is required (--metric=bounce_rate).' );
+		}
+		$result = $this->api->create_alert_rule( array(
+			'metric'    => $metric,
+			'threshold' => $threshold,
+			'channel'   => $channel,
+		) );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'Alert rule created.' );
+	}
+
+	public function alerts_delete( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->delete_alert_rule( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'Alert rule deleted.' );
+	}
+
+	// =========================================================================
+	// Engagement commands
+	// =========================================================================
+
+	public function engagement_summary( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_engagement_summary();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function engagement_score( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_engagement_score( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function engagement_disengaged( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_disengaged( array( 'per_page' => 50 ) );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// OOO commands
+	// =========================================================================
+
+	public function ooo_check( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->get_ooo_status( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$ooo = isset( $result['out_of_office'] ) && $result['out_of_office'];
+		if ( $ooo ) {
+			WP_CLI::warning( $args[0] . ' is currently out of office.' );
+		} else {
+			WP_CLI::success( $args[0] . ' is not out of office.' );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	public function ooo_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_ooo_contacts( array( 'per_page' => 50 ) );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// Spam check commands
+	// =========================================================================
+
+	public function spam_check_run( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$data = array();
+		if ( isset( $assoc_args['subject'] ) ) {
+			$data['subject'] = $assoc_args['subject'];
+		}
+		if ( isset( $assoc_args['from'] ) ) {
+			$data['from'] = $assoc_args['from'];
+		}
+		if ( isset( $assoc_args['html'] ) ) {
+			$data['html'] = $assoc_args['html'];
+		}
+		if ( empty( $data ) ) {
+			WP_CLI::error( 'Provide at least --subject or --html.' );
+		}
+		$result = $this->api->run_spam_check( $data );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+	}
+
+	// =========================================================================
+	// Subscriber list commands
+	// =========================================================================
+
+	public function lists_list( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->list_subscriber_lists();
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$lists = isset( $result['lists'] ) ? $result['lists'] : array();
+		if ( empty( $lists ) ) {
+			WP_CLI::line( 'No subscriber lists found.' );
+			return;
+		}
+		WP_CLI\Utils\format_items( 'table', $lists, array( 'id', 'name', 'subscriber_count', 'created_at' ) );
+	}
+
+	public function lists_create( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$data = array( 'name' => $args[0] );
+		if ( isset( $assoc_args['double-opt-in'] ) ) {
+			$data['double_opt_in'] = true;
+		}
+		$result = $this->api->create_subscriber_list( $data );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		$id = isset( $result['id'] ) ? $result['id'] : '';
+		WP_CLI::success( "List created: $id" );
+	}
+
+	public function lists_delete( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$result = $this->api->delete_subscriber_list( $args[0] );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( 'List deleted.' );
+	}
+
+	public function lists_subscribe( $args, $assoc_args ) {
+		if ( ! $this->api->has_key() ) {
+			WP_CLI::error( 'API key not configured.' );
+		}
+		$email   = $args[0];
+		$list_id = isset( $assoc_args['list'] ) ? $assoc_args['list'] : '';
+		if ( empty( $list_id ) ) {
+			WP_CLI::error( 'List ID is required (--list=ID).' );
+		}
+		$result = $this->api->subscribe( array( 'email' => $email, 'list_id' => $list_id ) );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::success( "$email subscribed to list $list_id." );
 	}
 }

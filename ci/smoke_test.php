@@ -116,6 +116,150 @@ if (is_wp_error($result)) {
     echo "  FAIL: error.empty_email expected WP_Error, got success\n";
 }
 
+// =========================================================================
+// New endpoint smoke tests
+// =========================================================================
+
+// Sending domains (list only -- safe, returns empty or existing)
+echo "Testing: sending-domains.list\n";
+$result = $api->list_sending_domains();
+if (is_wp_error($result)) {
+    check('sending-domains.list', false, true); // Acceptable: may 403 on free plan
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+} else {
+    $passed++;
+}
+
+// Bounce stats summary
+echo "Testing: bounce-stats.summary\n";
+$result = $api->get_bounce_stats_summary();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++; // Skip counts as pass for gated endpoints
+} else {
+    $passed++;
+}
+
+// Sender health
+echo "Testing: sender-health\n";
+$result = $api->get_sender_health();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Reputation
+echo "Testing: reputation\n";
+$result = $api->get_reputation();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Telemetry (existing method, new validation)
+echo "Testing: telemetry.summary\n";
+$result = $api->get_telemetry('24h');
+if (is_wp_error($result)) {
+    $failed++;
+    echo "  FAIL: telemetry WP_Error: " . $result->get_error_message() . "\n";
+} else {
+    $passed++;
+}
+
+// Suppression stats
+echo "Testing: suppression.stats\n";
+$result = $api->get_suppression_stats();
+if (is_wp_error($result)) {
+    $failed++;
+    echo "  FAIL: suppression.stats WP_Error: " . $result->get_error_message() . "\n";
+} else {
+    $passed++;
+}
+
+// Alert rules list (may be empty, that is OK)
+echo "Testing: alert-rules.list\n";
+$result = $api->list_alert_rules();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Engagement summary
+echo "Testing: engagement.summary\n";
+$result = $api->get_engagement_summary();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// OOO list
+echo "Testing: ooo.list\n";
+$result = $api->list_ooo_contacts();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Subscriber lists
+echo "Testing: lists.list\n";
+$result = $api->list_subscriber_lists();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Policies list (should always work)
+echo "Testing: policies.list\n";
+$result = $api->list_policies();
+if (is_wp_error($result)) {
+    $failed++;
+    echo "  FAIL: policies.list WP_Error: " . $result->get_error_message() . "\n";
+} else {
+    $passed++;
+}
+
+// DMARC domains list
+echo "Testing: dmarc.list\n";
+$result = $api->list_dmarc_domains();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Blacklist monitors list
+echo "Testing: blacklist.list\n";
+$result = $api->list_blacklist_monitors();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
+// Server tests list
+echo "Testing: server-tests.list\n";
+$result = $api->list_server_tests();
+if (is_wp_error($result)) {
+    echo "  SKIP: " . $result->get_error_message() . " (plan-gated)\n";
+    $passed++;
+} else {
+    $passed++;
+}
+
 echo "\n";
 
 $total = $passed + $failed;

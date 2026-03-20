@@ -98,6 +98,82 @@ class MailOdds_REST {
 			'callback'            => array( $this, 'get_status' ),
 			'permission_callback' => array( $this, 'check_permission' ),
 		) );
+
+		// Sending
+		register_rest_route( $this->namespace, '/deliver', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'deliver' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+			'args'                => array(
+				'to'      => array( 'required' => true, 'type' => 'array' ),
+				'subject' => array( 'required' => true, 'type' => 'string' ),
+			),
+		) );
+
+		// Sending domains
+		register_rest_route( $this->namespace, '/sending-domains', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'list_sending_domains' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+		) );
+
+		// Bounce stats
+		register_rest_route( $this->namespace, '/bounce-stats/summary', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'bounce_stats_summary' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+		) );
+
+		// Engagement
+		register_rest_route( $this->namespace, '/engagement/summary', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'engagement_summary' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+		) );
+
+		register_rest_route( $this->namespace, '/engagement/score/(?P<email>[^/]+)', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'engagement_score' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+			'args'                => array(
+				'email' => array( 'required' => true, 'type' => 'string' ),
+			),
+		) );
+
+		// OOO
+		register_rest_route( $this->namespace, '/ooo/(?P<email>[^/]+)', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'ooo_status' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+			'args'                => array(
+				'email' => array( 'required' => true, 'type' => 'string' ),
+			),
+		) );
+
+		// Reputation
+		register_rest_route( $this->namespace, '/reputation', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'reputation' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+		) );
+
+		// Sender health
+		register_rest_route( $this->namespace, '/sender-health', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'sender_health' ),
+			'permission_callback' => array( $this, 'check_permission' ),
+		) );
+
+		// Subscribe (public, no auth)
+		register_rest_route( $this->namespace, '/subscribe', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'subscribe' ),
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'email'   => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_email' ),
+				'list_id' => array( 'required' => true, 'type' => 'string' ),
+			),
+		) );
 	}
 
 	/**
@@ -201,5 +277,156 @@ class MailOdds_REST {
 			'depth'     => get_option( 'mailodds_depth', 'enhanced' ),
 			'today'     => isset( $stats[ $today ] ) ? $stats[ $today ] : null,
 		) );
+	}
+
+	/**
+	 * Send a transactional email.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function deliver( $request ) {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->deliver( $request->get_json_params() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * List sending domains.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function list_sending_domains() {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->list_sending_domains();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get bounce stats summary.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function bounce_stats_summary() {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->get_bounce_stats_summary();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get engagement summary.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function engagement_summary() {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->get_engagement_summary();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get engagement score for an email.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function engagement_score( $request ) {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->get_engagement_score( $request->get_param( 'email' ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get OOO status for an email.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function ooo_status( $request ) {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->get_ooo_status( $request->get_param( 'email' ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get sender reputation.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function reputation() {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->get_reputation();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get sender health.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function sender_health() {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'API key not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->get_sender_health();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Subscribe an email to a list (public, no auth).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function subscribe( $request ) {
+		if ( ! $this->api->has_key() ) {
+			return new WP_Error( 'mailodds_not_configured', __( 'Subscribe service is not configured.', 'mailodds-email-validation' ), array( 'status' => 500 ) );
+		}
+		$result = $this->api->subscribe( array(
+			'email'   => $request->get_param( 'email' ),
+			'list_id' => $request->get_param( 'list_id' ),
+		) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return rest_ensure_response( $result );
 	}
 }

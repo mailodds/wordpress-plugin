@@ -38,6 +38,10 @@ delete_option( 'mailodds_store_id' );
 delete_option( 'mailodds_handshake_secret' );
 delete_option( 'mailodds_api_base' );
 delete_option( 'mailodds_wc_key_id' );
+delete_option( 'mailodds_sending_enabled' );
+delete_option( 'mailodds_sending_from' );
+delete_option( 'mailodds_sending_from_name' );
+delete_option( 'mailodds_sending_failover' );
 
 // Delete all transients (cached validation results + plugin state)
 global $wpdb;

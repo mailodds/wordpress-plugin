@@ -63,8 +63,14 @@ class MailOdds_Admin {
 		$plugin_pages = array(
 			'settings_page_mailodds',
 			'settings_page_mailodds-policies',
+			'settings_page_mailodds-domains',
 			'tools_page_mailodds-bulk',
 			'tools_page_mailodds-suppressions',
+			'tools_page_mailodds-deliverability',
+			'tools_page_mailodds-monitoring',
+			'tools_page_mailodds-spam-check',
+			'tools_page_mailodds-engagement',
+			'tools_page_mailodds-lists',
 		);
 
 		if ( in_array( $hook, $plugin_pages, true ) ) {
@@ -89,6 +95,18 @@ class MailOdds_Admin {
 				$nonce = 'mailodds-suppression-nonce';
 			} elseif ( 'settings_page_mailodds-policies' === $hook ) {
 				$nonce = 'mailodds-policy-nonce';
+			} elseif ( 'settings_page_mailodds-domains' === $hook ) {
+				$nonce = 'mailodds-domain-nonce';
+			} elseif ( 'tools_page_mailodds-deliverability' === $hook ) {
+				$nonce = 'mailodds-deliverability-nonce';
+			} elseif ( 'tools_page_mailodds-monitoring' === $hook ) {
+				$nonce = 'mailodds-monitoring-nonce';
+			} elseif ( 'tools_page_mailodds-spam-check' === $hook ) {
+				$nonce = 'mailodds-spam-check-nonce';
+			} elseif ( 'tools_page_mailodds-engagement' === $hook ) {
+				$nonce = 'mailodds-engagement-nonce';
+			} elseif ( 'tools_page_mailodds-lists' === $hook ) {
+				$nonce = 'mailodds-lists-nonce';
 			}
 
 			wp_localize_script( 'mailodds-admin', 'mailodds_ajax', array(
