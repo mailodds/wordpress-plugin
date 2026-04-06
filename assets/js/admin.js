@@ -20,6 +20,7 @@
 	var pollInterval = 3000;
 	var pollTimer = null;
 	var pollCount = 0;
+	var maxPollCount = 200; // ~30 min at 10s intervals
 
 	$('#mailodds-bulk-start').on('click', function(e) {
 		e.preventDefault();
@@ -186,6 +187,12 @@
 				} else {
 					// Still processing - poll again with backoff
 					pollCount++;
+					if (pollCount >= maxPollCount) {
+						state = 'idle';
+						$('#mailodds-bulk-status').text('Polling timed out. The job is still running on the server. Refresh the page to check status.');
+						$('#mailodds-bulk-start').prop('disabled', false).text('Check Status');
+						return;
+					}
 					var delay = pollCount > 10 ? 10000 : pollInterval;
 					pollTimer = setTimeout(pollJobStatus, delay);
 				}
@@ -398,7 +405,8 @@
 			success: function(response) {
 				$('#mailodds-policy-test').prop('disabled', false);
 				if (response.success) {
-					$('#mailodds-policy-test-result').html('<pre>' + JSON.stringify(response.data, null, 2) + '</pre>');
+					var $pre = $('<pre/>').text(JSON.stringify(response.data, null, 2));
+					$('#mailodds-policy-test-result').empty().append($pre);
 				} else {
 					$('#mailodds-policy-test-result').text(response.data ? response.data.message : 'Error');
 				}

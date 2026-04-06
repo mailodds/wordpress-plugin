@@ -34,12 +34,20 @@ class MailOdds_API {
 	private $cache_ttl = DAY_IN_SECONDS;
 
 	/**
+	 * API base URL (cached from option).
+	 *
+	 * @var string
+	 */
+	private $api_base;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string $api_key API key.
 	 */
 	public function __construct( $api_key ) {
-		$this->api_key = $api_key;
+		$this->api_key  = $api_key;
+		$this->api_base = defined( 'MAILODDS_API_BASE' ) ? MAILODDS_API_BASE : 'https://api.mailodds.com';
 	}
 
 	/**
@@ -1340,6 +1348,1305 @@ class MailOdds_API {
 	}
 
 	// =========================================================================
+	// Blacklist Monitor Deletion
+	// =========================================================================
+
+	/**
+	 * Delete a blacklist monitor.
+	 *
+	 * @param string $monitor_id Monitor ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_blacklist_monitor( $monitor_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/blacklist-monitors/' . rawurlencode( $monitor_id ) );
+	}
+
+	// =========================================================================
+	// Bounce Analysis Deletion
+	// =========================================================================
+
+	/**
+	 * Delete a bounce analysis.
+	 *
+	 * @param string $analysis_id Analysis ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_bounce_analysis( $analysis_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/bounce-analyses/' . rawurlencode( $analysis_id ) );
+	}
+
+	// =========================================================================
+	// Campaigns
+	// =========================================================================
+
+	/**
+	 * List campaigns.
+	 *
+	 * @param array $params Query params (page, per_page, status).
+	 * @return array|WP_Error
+	 */
+	public function list_campaigns( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns', $params );
+	}
+
+	/**
+	 * Create a campaign.
+	 *
+	 * @param array $data Campaign data.
+	 * @return array|WP_Error
+	 */
+	public function create_campaign( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns', $data );
+	}
+
+	/**
+	 * Get a campaign by ID.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) );
+	}
+
+	/**
+	 * Get A/B test results for a campaign.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign_ab_results( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/ab-results' );
+	}
+
+	/**
+	 * Cancel a campaign.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function cancel_campaign( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/cancel' );
+	}
+
+	/**
+	 * Get campaign conversion attribution.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign_attribution( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/conversions/attribution' );
+	}
+
+	/**
+	 * Get campaign delivery confidence score.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign_delivery_confidence( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/delivery-confidence' );
+	}
+
+	/**
+	 * Get campaign funnel metrics.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign_funnel( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/funnel' );
+	}
+
+	/**
+	 * Get campaign provider intelligence.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign_provider_intelligence( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/provider-intelligence' );
+	}
+
+	/**
+	 * Schedule a campaign for future sending.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param array  $data        Schedule data (send_at).
+	 * @return array|WP_Error
+	 */
+	public function schedule_campaign( $campaign_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/schedule', $data );
+	}
+
+	/**
+	 * Send a campaign immediately.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function send_campaign( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/send' );
+	}
+
+	/**
+	 * List template versions for a campaign.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function list_campaign_template_versions( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions' );
+	}
+
+	/**
+	 * Create a template version for a campaign.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param array  $data        Template version data.
+	 * @return array|WP_Error
+	 */
+	public function create_campaign_template_version( $campaign_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions', $data );
+	}
+
+	/**
+	 * Rollback to a previous template version.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @return array|WP_Error
+	 */
+	public function rollback_campaign_template( $campaign_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions/rollback' );
+	}
+
+	/**
+	 * Get a specific template version.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param string $version_id  Version ID.
+	 * @return array|WP_Error
+	 */
+	public function get_campaign_template_version( $campaign_id, $version_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions/' . rawurlencode( $version_id ) );
+	}
+
+	/**
+	 * Update a template version.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param string $version_id  Version ID.
+	 * @param array  $data        Updated template data.
+	 * @return array|WP_Error
+	 */
+	public function update_campaign_template_version( $campaign_id, $version_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions/' . rawurlencode( $version_id ), $data );
+	}
+
+	/**
+	 * Start canary deployment for a template version.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param string $version_id  Version ID.
+	 * @param array  $data        Canary config (percentage).
+	 * @return array|WP_Error
+	 */
+	public function canary_campaign_template_version( $campaign_id, $version_id, $data = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions/' . rawurlencode( $version_id ) . '/canary', $data );
+	}
+
+	/**
+	 * Promote a template version to active.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param string $version_id  Version ID.
+	 * @return array|WP_Error
+	 */
+	public function promote_campaign_template_version( $campaign_id, $version_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/template-versions/' . rawurlencode( $version_id ) . '/promote' );
+	}
+
+	/**
+	 * Create a campaign variant for A/B testing.
+	 *
+	 * @param string $campaign_id Campaign ID.
+	 * @param array  $data        Variant data.
+	 * @return array|WP_Error
+	 */
+	public function create_campaign_variant( $campaign_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/campaigns/' . rawurlencode( $campaign_id ) . '/variants', $data );
+	}
+
+	// =========================================================================
+	// Configuration Sets
+	// =========================================================================
+
+	/**
+	 * List configuration sets.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function list_configuration_sets() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/configuration-sets' );
+	}
+
+	/**
+	 * Create a configuration set.
+	 *
+	 * @param array $data Configuration set data.
+	 * @return array|WP_Error
+	 */
+	public function create_configuration_set( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/configuration-sets', $data );
+	}
+
+	/**
+	 * Get a configuration set by name.
+	 *
+	 * @param string $name Configuration set name.
+	 * @return array|WP_Error
+	 */
+	public function get_configuration_set( $name ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/configuration-sets/' . rawurlencode( $name ) );
+	}
+
+	/**
+	 * Update a configuration set.
+	 *
+	 * @param string $name Configuration set name.
+	 * @param array  $data Updated configuration set data.
+	 * @return array|WP_Error
+	 */
+	public function update_configuration_set( $name, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/configuration-sets/' . rawurlencode( $name ), $data );
+	}
+
+	/**
+	 * Delete a configuration set.
+	 *
+	 * @param string $name Configuration set name.
+	 * @return array|WP_Error
+	 */
+	public function delete_configuration_set( $name ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/configuration-sets/' . rawurlencode( $name ) );
+	}
+
+	/**
+	 * Get metrics for a configuration set.
+	 *
+	 * @param string $name   Configuration set name.
+	 * @param array  $params Query params (days, metric).
+	 * @return array|WP_Error
+	 */
+	public function get_configuration_set_metrics( $name, $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/configuration-sets/' . rawurlencode( $name ) . '/metrics', $params );
+	}
+
+	// =========================================================================
+	// Contact Lists
+	// =========================================================================
+
+	/**
+	 * List contact lists.
+	 *
+	 * @param array $params Query params (page, per_page).
+	 * @return array|WP_Error
+	 */
+	public function list_contact_lists( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/contact-lists', $params );
+	}
+
+	/**
+	 * Create a contact list.
+	 *
+	 * @param array $data Contact list data (name).
+	 * @return array|WP_Error
+	 */
+	public function create_contact_list( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/contact-lists', $data );
+	}
+
+	/**
+	 * Delete a contact list.
+	 *
+	 * @param string $list_id Contact list ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_contact_list( $list_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/contact-lists/' . rawurlencode( $list_id ) );
+	}
+
+	/**
+	 * Append contacts to a contact list.
+	 *
+	 * @param string $list_id Contact list ID.
+	 * @param array  $data    Contact data (emails).
+	 * @return array|WP_Error
+	 */
+	public function append_contact_list( $list_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/append', $data );
+	}
+
+	/**
+	 * Add a contact to a contact list.
+	 *
+	 * @param string $list_id Contact list ID.
+	 * @param array  $data    Contact data (email, name, metadata).
+	 * @return array|WP_Error
+	 */
+	public function add_contact_list_contact( $list_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/contacts', $data );
+	}
+
+	/**
+	 * Delete a contact from a contact list.
+	 *
+	 * @param string $list_id    Contact list ID.
+	 * @param string $contact_id Contact ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_contact_list_contact( $list_id, $contact_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/contacts/' . rawurlencode( $contact_id ) );
+	}
+
+	/**
+	 * Update a contact in a contact list.
+	 *
+	 * @param string $list_id    Contact list ID.
+	 * @param string $contact_id Contact ID.
+	 * @param array  $data       Updated contact data.
+	 * @return array|WP_Error
+	 */
+	public function update_contact_list_contact( $list_id, $contact_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->patch( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/contacts/' . rawurlencode( $contact_id ), $data );
+	}
+
+	/**
+	 * Export a contact list.
+	 *
+	 * @param string $list_id Contact list ID.
+	 * @param array  $params  Query params (format).
+	 * @return array|WP_Error
+	 */
+	public function export_contact_list( $list_id, $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/export', $params );
+	}
+
+	/**
+	 * Import contacts into a contact list.
+	 *
+	 * @param string $list_id Contact list ID.
+	 * @param array  $data    Import data (emails, file).
+	 * @return array|WP_Error
+	 */
+	public function import_contact_list( $list_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/import', $data );
+	}
+
+	/**
+	 * Query contacts in a contact list.
+	 *
+	 * @param string $list_id Contact list ID.
+	 * @param array  $data    Query filters.
+	 * @return array|WP_Error
+	 */
+	public function query_contact_list( $list_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/contact-lists/' . rawurlencode( $list_id ) . '/query', $data );
+	}
+
+	// =========================================================================
+	// Contacts
+	// =========================================================================
+
+	/**
+	 * Get inactive contacts report.
+	 *
+	 * @param array $params Query params (days, page, per_page).
+	 * @return array|WP_Error
+	 */
+	public function get_inactive_contacts_report( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/contacts/inactive-report', $params );
+	}
+
+	// =========================================================================
+	// Deliverability Recommendations
+	// =========================================================================
+
+	/**
+	 * Get deliverability recommendations.
+	 *
+	 * @param array $params Query params.
+	 * @return array|WP_Error
+	 */
+	public function get_deliverability_recommendations( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/deliverability/recommendations', $params );
+	}
+
+	/**
+	 * Dismiss a deliverability recommendation.
+	 *
+	 * @param string $recommendation_id Recommendation ID.
+	 * @return array|WP_Error
+	 */
+	public function dismiss_deliverability_recommendation( $recommendation_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/deliverability/recommendations/' . rawurlencode( $recommendation_id ) . '/dismiss' );
+	}
+
+	// =========================================================================
+	// DMARC Domain Deletion
+	// =========================================================================
+
+	/**
+	 * Delete a DMARC monitored domain.
+	 *
+	 * @param string $domain_id Domain ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_dmarc_domain( $domain_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/dmarc-domains/' . rawurlencode( $domain_id ) );
+	}
+
+	// =========================================================================
+	// Event Destinations
+	// =========================================================================
+
+	/**
+	 * List event destinations.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function list_event_destinations() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/event-destinations' );
+	}
+
+	/**
+	 * Create an event destination.
+	 *
+	 * @param array $data Event destination data.
+	 * @return array|WP_Error
+	 */
+	public function create_event_destination( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/event-destinations', $data );
+	}
+
+	/**
+	 * Get event destination schemas.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function get_event_destination_schemas() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/event-destinations/schemas' );
+	}
+
+	/**
+	 * Get event destination templates.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function get_event_destination_templates() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/event-destinations/templates' );
+	}
+
+	/**
+	 * Get an event destination by ID.
+	 *
+	 * @param string $destination_id Destination ID.
+	 * @return array|WP_Error
+	 */
+	public function get_event_destination( $destination_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/event-destinations/' . rawurlencode( $destination_id ) );
+	}
+
+	/**
+	 * Update an event destination.
+	 *
+	 * @param string $destination_id Destination ID.
+	 * @param array  $data           Updated destination data.
+	 * @return array|WP_Error
+	 */
+	public function update_event_destination( $destination_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/event-destinations/' . rawurlencode( $destination_id ), $data );
+	}
+
+	/**
+	 * Delete an event destination.
+	 *
+	 * @param string $destination_id Destination ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_event_destination( $destination_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/event-destinations/' . rawurlencode( $destination_id ) );
+	}
+
+	// =========================================================================
+	// Event Tracking
+	// =========================================================================
+
+	/**
+	 * Track a custom event.
+	 *
+	 * @param array $data Event data (email, event_type, metadata).
+	 * @return array|WP_Error
+	 */
+	public function track_event( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/events/track', $data );
+	}
+
+	// =========================================================================
+	// Global Suppressions
+	// =========================================================================
+
+	/**
+	 * Check if an email is on the global suppression list.
+	 *
+	 * @param array $params Query params (email).
+	 * @return array|WP_Error
+	 */
+	public function check_global_suppression( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/global-suppressions/check', $params );
+	}
+
+	/**
+	 * Remove global suppression overrides.
+	 *
+	 * @param array $data Override data (emails).
+	 * @return array|WP_Error
+	 */
+	public function delete_global_suppression_overrides( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/global-suppressions/overrides', $data );
+	}
+
+	/**
+	 * Add global suppression overrides.
+	 *
+	 * @param array $data Override data (emails).
+	 * @return array|WP_Error
+	 */
+	public function add_global_suppression_overrides( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/global-suppressions/overrides', $data );
+	}
+
+	// =========================================================================
+	// Inbound Messages
+	// =========================================================================
+
+	/**
+	 * List inbound messages.
+	 *
+	 * @param array $params Query params (page, per_page, type).
+	 * @return array|WP_Error
+	 */
+	public function list_inbound_messages( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/inbound-messages', $params );
+	}
+
+	/**
+	 * Get an inbound message by ID.
+	 *
+	 * @param string $message_id Message ID.
+	 * @return array|WP_Error
+	 */
+	public function get_inbound_message( $message_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/inbound-messages/' . rawurlencode( $message_id ) );
+	}
+
+	/**
+	 * Submit a correction for an inbound message classification.
+	 *
+	 * @param string $message_id Message ID.
+	 * @param array  $data       Correction data (correct_type).
+	 * @return array|WP_Error
+	 */
+	public function correct_inbound_message( $message_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->patch( '/v1/inbound-messages/' . rawurlencode( $message_id ) . '/correction', $data );
+	}
+
+	// =========================================================================
+	// ISP FBL Guides
+	// =========================================================================
+
+	/**
+	 * List ISP feedback loop guides.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function list_isp_fbl_guides() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/isp-fbl/guides' );
+	}
+
+	/**
+	 * Get a specific ISP feedback loop guide.
+	 *
+	 * @param string $isp_id ISP identifier.
+	 * @return array|WP_Error
+	 */
+	public function get_isp_fbl_guide( $isp_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/isp-fbl/guides/' . rawurlencode( $isp_id ) );
+	}
+
+	// =========================================================================
+	// Jobs Upload
+	// =========================================================================
+
+	/**
+	 * Upload a file for bulk validation.
+	 *
+	 * @param array $data Upload data.
+	 * @return array|WP_Error
+	 */
+	public function upload_job( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/jobs/upload', $data );
+	}
+
+	/**
+	 * Get a presigned upload URL for bulk validation.
+	 *
+	 * @param array $data Presigned upload request data.
+	 * @return array|WP_Error
+	 */
+	public function get_presigned_upload( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/jobs/upload/presigned', $data );
+	}
+
+	/**
+	 * Create a bulk validation job from an S3 file.
+	 *
+	 * @param array $data S3 upload data (bucket, key).
+	 * @return array|WP_Error
+	 */
+	public function upload_job_s3( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/jobs/upload/s3', $data );
+	}
+
+	// =========================================================================
+	// Out-of-Office Update
+	// =========================================================================
+
+	/**
+	 * Update an out-of-office contact record.
+	 *
+	 * @param string $email Email address.
+	 * @param array  $data  Updated OOO data.
+	 * @return array|WP_Error
+	 */
+	public function update_ooo_contact( $email, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->patch( '/v1/out-of-office/' . rawurlencode( $email ), $data );
+	}
+
+	// =========================================================================
+	// Pixel Settings
+	// =========================================================================
+
+	/**
+	 * Get pixel tracking settings.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function get_pixel_settings() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/pixel-settings' );
+	}
+
+	/**
+	 * Update pixel tracking settings.
+	 *
+	 * @param array $data Pixel settings data.
+	 * @return array|WP_Error
+	 */
+	public function update_pixel_settings( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->patch( '/v1/pixel-settings', $data );
+	}
+
+	// =========================================================================
+	// Reputation Policies
+	// =========================================================================
+
+	/**
+	 * List reputation policies.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function list_reputation_policies() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/reputation-policies' );
+	}
+
+	/**
+	 * Create a reputation policy.
+	 *
+	 * @param array $data Reputation policy data.
+	 * @return array|WP_Error
+	 */
+	public function create_reputation_policy( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/reputation-policies', $data );
+	}
+
+	/**
+	 * Create a reputation policy from a preset.
+	 *
+	 * @param array $data Preset data (preset, name).
+	 * @return array|WP_Error
+	 */
+	public function create_reputation_policy_from_preset( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/reputation-policies/from-preset', $data );
+	}
+
+	/**
+	 * Get a reputation policy by ID.
+	 *
+	 * @param string $policy_id Policy ID.
+	 * @return array|WP_Error
+	 */
+	public function get_reputation_policy( $policy_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/reputation-policies/' . rawurlencode( $policy_id ) );
+	}
+
+	/**
+	 * Update a reputation policy.
+	 *
+	 * @param string $policy_id Policy ID.
+	 * @param array  $data      Updated policy data.
+	 * @return array|WP_Error
+	 */
+	public function update_reputation_policy( $policy_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/reputation-policies/' . rawurlencode( $policy_id ), $data );
+	}
+
+	/**
+	 * Delete a reputation policy.
+	 *
+	 * @param string $policy_id Policy ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_reputation_policy( $policy_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/reputation-policies/' . rawurlencode( $policy_id ) );
+	}
+
+	/**
+	 * Get reputation policy enforcement status.
+	 *
+	 * @param string $policy_id Policy ID.
+	 * @return array|WP_Error
+	 */
+	public function get_reputation_policy_status( $policy_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/reputation-policies/' . rawurlencode( $policy_id ) . '/status' );
+	}
+
+	/**
+	 * Test a reputation policy against sample data.
+	 *
+	 * @param string $policy_id Policy ID.
+	 * @param array  $data      Test data.
+	 * @return array|WP_Error
+	 */
+	public function test_reputation_policy( $policy_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/reputation-policies/' . rawurlencode( $policy_id ) . '/test', $data );
+	}
+
+	// =========================================================================
+	// Sending Domain Sub-resources
+	// =========================================================================
+
+	/**
+	 * Update an inbound rule for a sending domain.
+	 *
+	 * @param string $domain_id Domain ID.
+	 * @param string $rule_id   Rule ID.
+	 * @param array  $data      Updated rule data.
+	 * @return array|WP_Error
+	 */
+	public function update_sending_domain_inbound_rule( $domain_id, $rule_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/sending-domains/' . rawurlencode( $domain_id ) . '/inbound-rules/' . rawurlencode( $rule_id ), $data );
+	}
+
+	/**
+	 * Update managed SPF settings for a sending domain.
+	 *
+	 * @param string $domain_id Domain ID.
+	 * @param array  $data      SPF settings data.
+	 * @return array|WP_Error
+	 */
+	public function update_sending_domain_managed_spf( $domain_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/sending-domains/' . rawurlencode( $domain_id ) . '/managed-spf', $data );
+	}
+
+	// =========================================================================
+	// Simulate
+	// =========================================================================
+
+	/**
+	 * Simulate an email delivery.
+	 *
+	 * @param array $data Simulation data.
+	 * @return array|WP_Error
+	 */
+	public function simulate( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/simulate', $data );
+	}
+
+	// =========================================================================
+	// Spam Check Deletion
+	// =========================================================================
+
+	/**
+	 * Delete a spam check.
+	 *
+	 * @param string $check_id Check ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_spam_check( $check_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/spam-checks/' . rawurlencode( $check_id ) );
+	}
+
+	// =========================================================================
+	// Store Products
+	// =========================================================================
+
+	/**
+	 * List store products.
+	 *
+	 * @param array $params Query params (page, per_page, store_id).
+	 * @return array|WP_Error
+	 */
+	public function list_store_products( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/store-products', $params );
+	}
+
+	/**
+	 * Bulk update store products.
+	 *
+	 * @param array $data Bulk update data (products).
+	 * @return array|WP_Error
+	 */
+	public function bulk_update_store_products( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->patch( '/v1/store-products/bulk', $data );
+	}
+
+	/**
+	 * Get a store product by ID.
+	 *
+	 * @param string $product_id Product ID.
+	 * @return array|WP_Error
+	 */
+	public function get_store_product( $product_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/store-products/' . rawurlencode( $product_id ) );
+	}
+
+	// =========================================================================
+	// Stores
+	// =========================================================================
+
+	/**
+	 * List connected stores.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function list_stores() {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/stores' );
+	}
+
+	/**
+	 * Connect a new store.
+	 *
+	 * @param array $data Store data (platform, url, credentials).
+	 * @return array|WP_Error
+	 */
+	public function create_store( $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/stores', $data );
+	}
+
+	/**
+	 * Get a store by ID.
+	 *
+	 * @param string $store_id Store ID.
+	 * @return array|WP_Error
+	 */
+	public function get_store( $store_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/stores/' . rawurlencode( $store_id ) );
+	}
+
+	/**
+	 * Update a store.
+	 *
+	 * @param string $store_id Store ID.
+	 * @param array  $data     Updated store data.
+	 * @return array|WP_Error
+	 */
+	public function update_store( $store_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->put( '/v1/stores/' . rawurlencode( $store_id ), $data );
+	}
+
+	/**
+	 * Delete a store.
+	 *
+	 * @param string $store_id Store ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_store( $store_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/stores/' . rawurlencode( $store_id ) );
+	}
+
+	/**
+	 * Batch import/update products for a store.
+	 *
+	 * @param string $store_id Store ID.
+	 * @param array  $data     Products data.
+	 * @return array|WP_Error
+	 */
+	public function batch_store_products( $store_id, $data ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/stores/' . rawurlencode( $store_id ) . '/products/batch', $data );
+	}
+
+	/**
+	 * Trigger a store sync.
+	 *
+	 * @param string $store_id Store ID.
+	 * @return array|WP_Error
+	 */
+	public function sync_store( $store_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/stores/' . rawurlencode( $store_id ) . '/sync' );
+	}
+
+	/**
+	 * List sync jobs for a store.
+	 *
+	 * @param string $store_id Store ID.
+	 * @param array  $params   Query params (page, per_page).
+	 * @return array|WP_Error
+	 */
+	public function list_store_sync_jobs( $store_id, $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/stores/' . rawurlencode( $store_id ) . '/sync-jobs', $params );
+	}
+
+	/**
+	 * Get errors for a store sync job.
+	 *
+	 * @param string $store_id Store ID.
+	 * @param string $job_id   Sync job ID.
+	 * @param array  $params   Query params (page, per_page).
+	 * @return array|WP_Error
+	 */
+	public function get_store_sync_job_errors( $store_id, $job_id, $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/stores/' . rawurlencode( $store_id ) . '/sync-jobs/' . rawurlencode( $job_id ) . '/errors', $params );
+	}
+
+	// =========================================================================
+	// Webhook CLI
+	// =========================================================================
+
+	/**
+	 * List webhook CLI deliveries.
+	 *
+	 * @param array $params Query params (page, per_page, session_id).
+	 * @return array|WP_Error
+	 */
+	public function list_webhook_deliveries( $params = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->get( '/v1/webhook-cli/deliveries', $params );
+	}
+
+	/**
+	 * Replay a webhook delivery.
+	 *
+	 * @param string $delivery_id Delivery ID.
+	 * @return array|WP_Error
+	 */
+	public function replay_webhook_delivery( $delivery_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/webhook-cli/deliveries/' . rawurlencode( $delivery_id ) . '/replay' );
+	}
+
+	/**
+	 * Create a webhook CLI session.
+	 *
+	 * @param array $data Session data (events).
+	 * @return array|WP_Error
+	 */
+	public function create_webhook_cli_session( $data = array() ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->post( '/v1/webhook-cli/sessions', $data );
+	}
+
+	/**
+	 * Delete a webhook CLI session.
+	 *
+	 * @param string $session_id Session ID.
+	 * @return array|WP_Error
+	 */
+	public function delete_webhook_cli_session( $session_id ) {
+		if ( ! $this->has_key() ) {
+			return new WP_Error( 'mailodds_no_api_key', __( 'MailOdds API key not configured.', 'mailodds-email-validation' ) );
+		}
+		return $this->delete( '/v1/webhook-cli/sessions/' . rawurlencode( $session_id ) );
+	}
+
+	// =========================================================================
 	// HTTP Methods (private)
 	// =========================================================================
 
@@ -1352,7 +2659,7 @@ class MailOdds_API {
 	 * @return array|WP_Error Decoded response or error.
 	 */
 	private function request( $method, $endpoint, $args = array() ) {
-		$url = MAILODDS_API_BASE . $endpoint;
+		$url = $this->api_base . $endpoint;
 
 		$headers = array(
 			'Authorization' => 'Bearer ' . $this->api_key,

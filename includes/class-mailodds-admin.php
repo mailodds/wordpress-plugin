@@ -50,8 +50,8 @@ class MailOdds_Admin {
 	 */
 	public function flush_transient_cache() {
 		global $wpdb;
-		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_mailodds_%'" );
-		$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_mailodds_%'" );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '_transient_mailodds_%' ) );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '_transient_timeout_mailodds_%' ) );
 	}
 
 	/**
@@ -63,14 +63,8 @@ class MailOdds_Admin {
 		$plugin_pages = array(
 			'settings_page_mailodds',
 			'settings_page_mailodds-policies',
-			'settings_page_mailodds-domains',
 			'tools_page_mailodds-bulk',
 			'tools_page_mailodds-suppressions',
-			'tools_page_mailodds-deliverability',
-			'tools_page_mailodds-monitoring',
-			'tools_page_mailodds-spam-check',
-			'tools_page_mailodds-engagement',
-			'tools_page_mailodds-lists',
 		);
 
 		if ( in_array( $hook, $plugin_pages, true ) ) {
@@ -95,18 +89,6 @@ class MailOdds_Admin {
 				$nonce = 'mailodds-suppression-nonce';
 			} elseif ( 'settings_page_mailodds-policies' === $hook ) {
 				$nonce = 'mailodds-policy-nonce';
-			} elseif ( 'settings_page_mailodds-domains' === $hook ) {
-				$nonce = 'mailodds-domain-nonce';
-			} elseif ( 'tools_page_mailodds-deliverability' === $hook ) {
-				$nonce = 'mailodds-deliverability-nonce';
-			} elseif ( 'tools_page_mailodds-monitoring' === $hook ) {
-				$nonce = 'mailodds-monitoring-nonce';
-			} elseif ( 'tools_page_mailodds-spam-check' === $hook ) {
-				$nonce = 'mailodds-spam-check-nonce';
-			} elseif ( 'tools_page_mailodds-engagement' === $hook ) {
-				$nonce = 'mailodds-engagement-nonce';
-			} elseif ( 'tools_page_mailodds-lists' === $hook ) {
-				$nonce = 'mailodds-lists-nonce';
 			}
 
 			wp_localize_script( 'mailodds-admin', 'mailodds_ajax', array(
@@ -127,6 +109,7 @@ class MailOdds_Admin {
 				wp_localize_script( 'mailodds-store', 'mailodds_store', array(
 					'ajaxurl'            => admin_url( 'admin-ajax.php' ),
 					'nonce'              => wp_create_nonce( 'mailodds-store-nonce' ),
+					'connect_nonce'      => wp_create_nonce( 'mailodds_connect_nonce' ),
 					'confirm_disconnect' => __( 'Disconnect your store? Product sync will stop.', 'mailodds-email-validation' ),
 				) );
 			}
@@ -840,14 +823,45 @@ class MailOdds_Admin {
 	 * Render store connection status and action button.
 	 */
 	public function render_store_status_field() {
-		$is_connected = get_option( 'mailodds_store_connected', false );
-		$store_id     = get_option( 'mailodds_store_id', '' );
-		$has_wc       = class_exists( 'WooCommerce' );
+		$is_connected  = get_option( 'mailodds_store_connected', false );
+		$store_id      = get_option( 'mailodds_store_id', '' );
+		$connected_via = get_option( 'mailodds_connected_via', '' );
+		$has_wc        = class_exists( 'WooCommerce' );
+
+		// Connection health check
+		$connect = new MailOdds_Connect();
+		$health  = $connect->check_connection_health();
+
+		// Show reconnect banner for disconnected state (401 from API)
+		if ( 'disconnected' === $health && $is_connected ) {
+			echo '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px;margin-bottom:12px;">';
+			echo '<strong style="color:#991b1b;">' . esc_html__( 'Connection Lost', 'mailodds-email-validation' ) . '</strong>';
+			echo '<p style="color:#991b1b;margin:4px 0 8px;">' . esc_html__( 'Your API key was revoked or expired. Click Reconnect to restore the connection.', 'mailodds-email-validation' ) . '</p>';
+			echo '<button type="button" class="button button-primary" id="mailodds-oneclick-connect">';
+			echo esc_html__( 'Reconnect to MailOdds', 'mailodds-email-validation' );
+			echo '</button>';
+			echo '<span id="mailodds-store-spinner" class="spinner" style="float:none;margin-top:0;"></span>';
+			echo '<span id="mailodds-store-message" style="margin-left:8px;"></span>';
+			echo '</div>';
+			return;
+		}
 
 		if ( $is_connected && ! empty( $store_id ) ) {
+			// Health indicator color
+			$health_colors = array(
+				'connected' => '#10b981',
+				'degraded'  => '#f59e0b',
+				'disconnected' => '#ef4444',
+				'not_configured' => '#a1a1aa',
+			);
+			$color = isset( $health_colors[ $health ] ) ? $health_colors[ $health ] : '#a1a1aa';
+
 			echo '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
-			echo '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#10b981;"></span>';
+			echo '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' . esc_attr( $color ) . ';"></span>';
 			echo '<strong>' . esc_html__( 'Connected', 'mailodds-email-validation' ) . '</strong>';
+			if ( 'one_click_connect' === $connected_via ) {
+				echo ' <span style="font-size:11px;color:#6b7280;">' . esc_html__( '(via one-click)', 'mailodds-email-validation' ) . '</span>';
+			}
 			echo '</div>';
 			echo '<p class="description">' . esc_html( sprintf(
 				/* translators: %s: store ID */
@@ -867,28 +881,45 @@ class MailOdds_Admin {
 			echo '<strong>' . esc_html__( 'Not Connected', 'mailodds-email-validation' ) . '</strong>';
 			echo '</div>';
 
-			if ( ! $has_wc ) {
-				echo '<p class="description" style="color:#b91c1c;">';
-				echo esc_html__( 'WooCommerce is not active. Install and activate WooCommerce to connect your store.', 'mailodds-email-validation' );
-				echo '</p>';
-			} elseif ( ! $this->api->has_key() ) {
-				echo '<p class="description">';
-				echo esc_html__( 'Configure your API key above before connecting your store.', 'mailodds-email-validation' );
-				echo '</p>';
-			} else {
+			// One-click connect as primary CTA
+			echo '<p style="margin-top:8px;">';
+			echo '<button type="button" class="button button-primary" id="mailodds-oneclick-connect" style="margin-right:8px;">';
+			echo esc_html__( 'Connect to MailOdds', 'mailodds-email-validation' );
+			echo '</button>';
+			echo '<span id="mailodds-store-spinner" class="spinner" style="float:none;margin-top:0;"></span>';
+			echo '<span id="mailodds-store-message" style="margin-left:8px;"></span>';
+			echo '</p>';
+			echo '<p class="description" style="margin-top:4px;">';
+			echo esc_html__( 'Click to authorize your store with MailOdds. No API key copy-paste needed.', 'mailodds-email-validation' );
+			echo '</p>';
+
+			// Manual setup as secondary option
+			if ( $has_wc && $this->api->has_key() ) {
+				echo '<details style="margin-top:12px;">';
+				echo '<summary style="cursor:pointer;font-size:12px;color:#6b7280;">' . esc_html__( 'Advanced: Manual store connection', 'mailodds-email-validation' ) . '</summary>';
 				echo '<p style="margin-top:8px;">';
-				echo '<button type="button" class="button button-primary" id="mailodds-connect-store">';
-				echo esc_html__( 'Connect Store', 'mailodds-email-validation' );
+				echo '<button type="button" class="button button-secondary" id="mailodds-connect-store">';
+				echo esc_html__( 'Connect Store (Manual)', 'mailodds-email-validation' );
 				echo '</button>';
-				echo '<span id="mailodds-store-spinner" class="spinner" style="float:none;margin-top:0;"></span>';
-				echo '<span id="mailodds-store-message" style="margin-left:8px;"></span>';
 				echo '</p>';
 				echo '<p class="description" style="margin-top:4px;">';
 				echo esc_html__( 'Creates read-only WooCommerce API keys and registers your store with MailOdds.', 'mailodds-email-validation' );
 				echo '</p>';
+				echo '</details>';
 			}
 		}
 
+		// Show success notice after one-click connect redirect
+		if ( isset( $_GET['connected'] ) && '1' === $_GET['connected'] ) {
+			$verified = isset( $_GET['verified'] ) && '1' === $_GET['verified'];
+			echo '<div class="notice notice-success" style="margin-top:12px;padding:8px 12px;">';
+			if ( $verified ) {
+				echo '<p>' . esc_html__( 'Store connected and verified successfully.', 'mailodds-email-validation' ) . '</p>';
+			} else {
+				echo '<p>' . esc_html__( 'Store connected. API verification test was not conclusive; validation should still work.', 'mailodds-email-validation' ) . '</p>';
+			}
+			echo '</div>';
+		}
 	}
 
 	/**

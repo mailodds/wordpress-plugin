@@ -26,12 +26,48 @@ class MailOdds_Updater {
 
 	/**
 	 * Constructor.
+	 *
+	 * Skips GitHub update checks when installed from WordPress.org,
+	 * since the built-in update system handles it.
 	 */
 	public function __construct() {
 		$this->basename = plugin_basename( MAILODDS_PLUGIN_FILE );
 
+		if ( $this->is_wp_org_install() ) {
+			return;
+		}
+
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_update' ) );
 		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 10, 3 );
+	}
+
+	/**
+	 * Detect if the plugin was installed from WordPress.org.
+	 *
+	 * Checks the update_plugins transient for a WordPress.org-sourced
+	 * entry matching this plugin's basename.
+	 *
+	 * @return bool
+	 */
+	private function is_wp_org_install() {
+		$transient = get_site_transient( 'update_plugins' );
+
+		if ( ! is_object( $transient ) ) {
+			return false;
+		}
+
+		// Check both response (has update) and no_update (up to date) lists
+		foreach ( array( 'response', 'no_update' ) as $key ) {
+			if ( ! empty( $transient->$key ) && isset( $transient->$key[ $this->basename ] ) ) {
+				$entry = $transient->$key[ $this->basename ];
+				$id    = is_object( $entry ) && isset( $entry->id ) ? $entry->id : '';
+				if ( false !== strpos( $id, 'w.org/' ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -132,7 +168,10 @@ class MailOdds_Updater {
 			// Graceful SSL failure on shared hosts with old CA bundles
 			$msg = $response->get_error_message();
 			if ( false !== strpos( $msg, 'cURL error 60' ) || false !== strpos( $msg, 'SSL' ) ) {
-				error_log( 'MailOdds: GitHub update check skipped due to SSL error: ' . $msg );
+				if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- debug logging
+					error_log( sprintf( '[MailOdds] GitHub update check skipped due to SSL error: %s', $msg ) );
+				}
 			}
 			return false;
 		}

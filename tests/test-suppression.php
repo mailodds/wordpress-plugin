@@ -72,6 +72,95 @@ class SuppressionTest extends MailOdds_TestCase {
 	}
 
 	// =========================================================================
+	// AJAX add: valid email
+	// =========================================================================
+
+	public function test_ajax_add_valid_email_calls_api() {
+		$api  = Mockery::mock( 'MailOdds_API' );
+		$api->shouldReceive( 'add_suppression' )
+			->once()
+			->with( Mockery::on( function ( $entries ) {
+				return is_array( $entries )
+					&& 'spam@example.com' === $entries[0]['email']
+					&& 'manual' === $entries[0]['type'];
+			} ) )
+			->andReturn( array( 'added' => 1 ) );
+
+		$supp = new MailOdds_Suppression( $api );
+
+		$_POST['email']  = 'spam@example.com';
+		$_POST['type']   = 'manual';
+		$_POST['reason'] = '';
+
+		Functions\expect( 'check_ajax_referer' )->once()->andReturn( true );
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+
+		Functions\expect( 'wp_send_json_success' )
+			->once()
+			->andReturnUsing( function () {
+				throw new \RuntimeException( 'wp_send_json_success called' );
+			} );
+
+		$this->expectException( \RuntimeException::class );
+		$supp->ajax_add_suppression();
+
+		unset( $_POST['email'], $_POST['type'], $_POST['reason'] );
+	}
+
+	public function test_ajax_add_empty_email_returns_error() {
+		$api  = Mockery::mock( 'MailOdds_API' );
+		$api->shouldNotReceive( 'add_suppression' );
+
+		$supp = new MailOdds_Suppression( $api );
+
+		$_POST['email']  = '';
+		$_POST['type']   = 'manual';
+
+		Functions\expect( 'check_ajax_referer' )->once()->andReturn( true );
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+
+		Functions\expect( 'wp_send_json_error' )
+			->once()
+			->andReturnUsing( function ( $data ) {
+				$this->assertStringContainsString( 'email required', $data['message'] );
+				throw new \RuntimeException( 'wp_send_json_error called' );
+			} );
+
+		$this->expectException( \RuntimeException::class );
+		$supp->ajax_add_suppression();
+
+		unset( $_POST['email'], $_POST['type'] );
+	}
+
+	public function test_ajax_add_api_error_returns_error() {
+		$api  = Mockery::mock( 'MailOdds_API' );
+		$api->shouldReceive( 'add_suppression' )
+			->once()
+			->andReturn( new WP_Error( 'mailodds_api_error', 'Service unavailable' ) );
+
+		$supp = new MailOdds_Suppression( $api );
+
+		$_POST['email']  = 'user@example.com';
+		$_POST['type']   = 'manual';
+		$_POST['reason'] = '';
+
+		Functions\expect( 'check_ajax_referer' )->once()->andReturn( true );
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+
+		Functions\expect( 'wp_send_json_error' )
+			->once()
+			->andReturnUsing( function ( $data ) {
+				$this->assertStringContainsString( 'Service unavailable', $data['message'] );
+				throw new \RuntimeException( 'wp_send_json_error called' );
+			} );
+
+		$this->expectException( \RuntimeException::class );
+		$supp->ajax_add_suppression();
+
+		unset( $_POST['email'], $_POST['type'], $_POST['reason'] );
+	}
+
+	// =========================================================================
 	// AJAX remove: security
 	// =========================================================================
 
@@ -105,6 +194,89 @@ class SuppressionTest extends MailOdds_TestCase {
 
 		$this->expectException( \RuntimeException::class );
 		$supp->ajax_remove_suppression();
+	}
+
+	// =========================================================================
+	// AJAX remove: valid email
+	// =========================================================================
+
+	public function test_ajax_remove_valid_email_calls_api() {
+		$api  = Mockery::mock( 'MailOdds_API' );
+		$api->shouldReceive( 'remove_suppression' )
+			->once()
+			->with( Mockery::on( function ( $entries ) {
+				return is_array( $entries )
+					&& 'removed@example.com' === $entries[0]['email'];
+			} ) )
+			->andReturn( array( 'removed' => 1 ) );
+
+		$supp = new MailOdds_Suppression( $api );
+
+		$_POST['email'] = 'removed@example.com';
+
+		Functions\expect( 'check_ajax_referer' )->once()->andReturn( true );
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+
+		Functions\expect( 'wp_send_json_success' )
+			->once()
+			->andReturnUsing( function () {
+				throw new \RuntimeException( 'wp_send_json_success called' );
+			} );
+
+		$this->expectException( \RuntimeException::class );
+		$supp->ajax_remove_suppression();
+
+		unset( $_POST['email'] );
+	}
+
+	public function test_ajax_remove_empty_email_returns_error() {
+		$api  = Mockery::mock( 'MailOdds_API' );
+		$api->shouldNotReceive( 'remove_suppression' );
+
+		$supp = new MailOdds_Suppression( $api );
+
+		$_POST['email'] = '';
+
+		Functions\expect( 'check_ajax_referer' )->once()->andReturn( true );
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+
+		Functions\expect( 'wp_send_json_error' )
+			->once()
+			->andReturnUsing( function ( $data ) {
+				$this->assertStringContainsString( 'email required', $data['message'] );
+				throw new \RuntimeException( 'wp_send_json_error called' );
+			} );
+
+		$this->expectException( \RuntimeException::class );
+		$supp->ajax_remove_suppression();
+
+		unset( $_POST['email'] );
+	}
+
+	public function test_ajax_remove_api_error_returns_error() {
+		$api  = Mockery::mock( 'MailOdds_API' );
+		$api->shouldReceive( 'remove_suppression' )
+			->once()
+			->andReturn( new WP_Error( 'mailodds_api_error', 'Not found' ) );
+
+		$supp = new MailOdds_Suppression( $api );
+
+		$_POST['email'] = 'missing@example.com';
+
+		Functions\expect( 'check_ajax_referer' )->once()->andReturn( true );
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+
+		Functions\expect( 'wp_send_json_error' )
+			->once()
+			->andReturnUsing( function ( $data ) {
+				$this->assertStringContainsString( 'Not found', $data['message'] );
+				throw new \RuntimeException( 'wp_send_json_error called' );
+			} );
+
+		$this->expectException( \RuntimeException::class );
+		$supp->ajax_remove_suppression();
+
+		unset( $_POST['email'] );
 	}
 
 	// =========================================================================

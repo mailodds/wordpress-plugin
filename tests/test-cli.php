@@ -84,25 +84,14 @@ namespace {
 			$api = Mockery::mock( 'MailOdds_API' );
 			MailOdds_CLI::register( $api );
 
-			$this->assertCount( 53, WP_CLI::$commands );
+			$this->assertCount( 18, WP_CLI::$commands );
 			$this->assertContains( 'mailodds validate', WP_CLI::$commands );
 			$this->assertContains( 'mailodds bulk', WP_CLI::$commands );
 			$this->assertContains( 'mailodds status', WP_CLI::$commands );
 			$this->assertContains( 'mailodds suppression list', WP_CLI::$commands );
 			$this->assertContains( 'mailodds jobs list', WP_CLI::$commands );
 			$this->assertContains( 'mailodds policies list', WP_CLI::$commands );
-			$this->assertContains( 'mailodds domains list', WP_CLI::$commands );
-			$this->assertContains( 'mailodds bounces summary', WP_CLI::$commands );
-			$this->assertContains( 'mailodds dmarc list', WP_CLI::$commands );
-			$this->assertContains( 'mailodds blacklist list', WP_CLI::$commands );
-			$this->assertContains( 'mailodds alerts list', WP_CLI::$commands );
-			$this->assertContains( 'mailodds engagement summary', WP_CLI::$commands );
-			$this->assertContains( 'mailodds ooo check', WP_CLI::$commands );
-			$this->assertContains( 'mailodds lists list', WP_CLI::$commands );
-			$this->assertContains( 'mailodds spam-check run', WP_CLI::$commands );
-			$this->assertContains( 'mailodds server-test run', WP_CLI::$commands );
-			$this->assertContains( 'mailodds reputation', WP_CLI::$commands );
-			$this->assertContains( 'mailodds sender-health', WP_CLI::$commands );
+			$this->assertContains( 'mailodds sync-status', WP_CLI::$commands );
 		}
 
 		public function test_validate_no_key_calls_error() {

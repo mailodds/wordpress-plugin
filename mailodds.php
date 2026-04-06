@@ -3,7 +3,7 @@
  * Plugin Name: MailOdds Email Validation
  * Plugin URI:  https://mailodds.com/integrations/wordpress
  * Description: Validate emails on registration, checkout, and contact forms using the MailOdds API. Blocks fake signups, disposable emails, and invalid addresses.
- * Version:     3.0.0
+ * Version:     2.1.0
  * Requires at least: 5.9
  * Requires PHP: 7.4
  * Author:      MailOdds
@@ -11,6 +11,7 @@
  * License:     GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: mailodds-email-validation
+ * Domain Path: /languages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'MAILODDS_VERSION', '3.0.0' );
+define( 'MAILODDS_VERSION', '2.1.0' );
 define( 'MAILODDS_PLUGIN_FILE', __FILE__ );
 define( 'MAILODDS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MAILODDS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -35,14 +36,8 @@ require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-updater.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-rest.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-webhook.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-handshake.php';
+require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-connect.php';
 require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-catalog.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-sender.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-domains.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-deliverability.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-monitoring.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-spam-check.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-engagement.php';
-require_once MAILODDS_PLUGIN_DIR . 'includes/class-mailodds-lists.php';
 
 // WP-CLI commands (only in CLI context)
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -111,27 +106,66 @@ final class MailOdds {
 		new MailOdds_REST( $this->api );
 		new MailOdds_Webhook( $this->api );
 		$this->handshake = new MailOdds_Handshake();
-		$this->catalog   = new MailOdds_Catalog();
+		$connect = new MailOdds_Connect();
+		$connect->register_hooks();
+		$this->catalog = new MailOdds_Catalog();
 		$this->catalog->register_hooks();
-
-		// Email sending, domains, deliverability, monitoring, engagement, lists
-		new MailOdds_Sender( $this->api );
-		new MailOdds_Domains( $this->api );
-		new MailOdds_Deliverability( $this->api );
-		new MailOdds_Monitoring( $this->api );
-		new MailOdds_Spam_Check( $this->api );
-		new MailOdds_Engagement( $this->api );
-		new MailOdds_Lists( $this->api );
 
 		// WP-CLI
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			MailOdds_CLI::register( $this->api );
 		}
 
+		// Prevent WooCommerce from silently disabling webhooks after 5 failures.
+		// WooCommerce default is 5 consecutive failures before auto-disable.
+		// MailOdds needs reliable webhook delivery for bi-directional sync.
+		add_filter( 'woocommerce_max_webhook_delivery_failures', array( $this, 'increase_webhook_failure_threshold' ) );
+
+		// Dependency checks
+		add_action( 'admin_notices', array( $this, 'dependency_notices' ) );
+
 		// Cron for periodic validation (two-phase: fire + check)
 		add_action( 'mailodds_cron_validate_users', array( $this, 'cron_validate_users' ) );
 		add_action( 'mailodds_cron_check_job', array( $this, 'cron_check_job' ) );
 		add_filter( 'cron_schedules', array( $this, 'add_cron_schedule' ) );
+	}
+
+	/**
+	 * Show admin notices for missing dependencies.
+	 *
+	 * Checks PHP version, curl extension, and WooCommerce availability
+	 * when the WooCommerce integration is enabled.
+	 */
+	public function dependency_notices() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// PHP version check (runtime, complements the plugin header)
+		if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
+			echo '<div class="notice notice-error is-dismissible"><p>';
+			echo esc_html( sprintf(
+				/* translators: %s: current PHP version */
+				__( 'MailOdds requires PHP 7.4 or later. Your server is running PHP %s. Please upgrade PHP to use this plugin.', 'mailodds-email-validation' ),
+				PHP_VERSION
+			) );
+			echo '</p></div>';
+		}
+
+		// curl extension check
+		if ( ! extension_loaded( 'curl' ) ) {
+			echo '<div class="notice notice-error is-dismissible"><p>';
+			echo esc_html__( 'MailOdds requires the PHP curl extension. Please enable it in your server configuration (php.ini) for the plugin to communicate with the MailOdds API.', 'mailodds-email-validation' );
+			echo '</p></div>';
+		}
+
+		// WooCommerce active check (only if WC integration is enabled)
+		$integrations = get_option( 'mailodds_integrations', array() );
+		if ( ! empty( $integrations['woocommerce'] ) && ! class_exists( 'WooCommerce' ) ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html__( 'MailOdds: WooCommerce integration is enabled but WooCommerce is not active. Install and activate WooCommerce, or disable the WooCommerce integration in Settings > MailOdds.', 'mailodds-email-validation' );
+			echo '</p></div>';
+		}
 	}
 
 	/**
@@ -153,6 +187,21 @@ final class MailOdds {
 	}
 
 	/**
+	 * Increase WooCommerce webhook failure threshold.
+	 *
+	 * WooCommerce auto-disables webhooks after N consecutive delivery
+	 * failures. The default (5) is too aggressive for stores with
+	 * intermittent connectivity. Raising to 100 keeps MailOdds sync
+	 * webhooks active through temporary outages.
+	 *
+	 * @param int $threshold Current failure threshold.
+	 * @return int
+	 */
+	public function increase_webhook_failure_threshold( $threshold ) {
+		return 100;
+	}
+
+	/**
 	 * Cron Phase A: create a validation job (fire and forget).
 	 *
 	 * For small batches (< 100), uses synchronous validate_batch.
@@ -167,6 +216,13 @@ final class MailOdds {
 		// Skip if a job is already in progress
 		$existing_job = get_option( 'mailodds_cron_job_id', '' );
 		if ( ! empty( $existing_job ) ) {
+			return;
+		}
+
+		// Acquire a lock to prevent concurrent cron executions
+		if ( false === get_transient( 'mailodds_cron_lock' ) ) {
+			set_transient( 'mailodds_cron_lock', 1, 600 );
+		} else {
 			return;
 		}
 
@@ -214,6 +270,7 @@ final class MailOdds {
 			$stats['last_run']   = current_time( 'mysql' );
 			$stats['last_count'] = count( $results );
 			update_option( 'mailodds_cron_stats', $stats );
+			delete_transient( 'mailodds_cron_lock' );
 			return;
 		}
 
@@ -233,6 +290,8 @@ final class MailOdds {
 				wp_schedule_event( time() + 900, 'mailodds_15min', 'mailodds_cron_check_job' );
 			}
 		}
+
+		delete_transient( 'mailodds_cron_lock' );
 	}
 
 	/**

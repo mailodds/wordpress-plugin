@@ -62,6 +62,11 @@ class MailOdds_Suppression {
 			return;
 		}
 
+		// Verify nonce on filtered requests (present when form submitted)
+		if ( isset( $_GET['_wpnonce'] ) ) {
+			check_admin_referer( 'mailodds-suppression-filter' );
+		}
+
 		$page     = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1;
 		$type     = isset( $_GET['suppression_type'] ) ? sanitize_text_field( wp_unslash( $_GET['suppression_type'] ) ) : '';
 		$search   = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
@@ -130,6 +135,7 @@ class MailOdds_Suppression {
 				<div style="flex:1;">
 					<form method="get" style="margin-bottom:16px;">
 						<input type="hidden" name="page" value="mailodds-suppressions" />
+						<?php wp_nonce_field( 'mailodds-suppression-filter', '_wpnonce', false ); ?>
 						<select name="suppression_type">
 							<option value=""><?php esc_html_e( 'All Types', 'mailodds-email-validation' ); ?></option>
 							<option value="hard_bounce" <?php selected( $type, 'hard_bounce' ); ?>><?php esc_html_e( 'Hard Bounce', 'mailodds-email-validation' ); ?></option>

@@ -256,7 +256,10 @@ class MailOdds_Validator {
 			$supp = $this->api->check_suppression( $email );
 			if ( is_wp_error( $supp ) ) {
 				// Fail-open: log and increment counter
-				error_log( 'MailOdds: suppression check failed for ' . $email . ': ' . $supp->get_error_message() );
+				if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- debug logging
+					error_log( sprintf( '[MailOdds] suppression check failed: %s', $supp->get_error_message() ) );
+				}
 				$count = absint( get_transient( 'mailodds_suppression_failopen_count' ) );
 				set_transient( 'mailodds_suppression_failopen_count', $count + 1, 30 * DAY_IN_SECONDS );
 				if ( 0 === $count ) {

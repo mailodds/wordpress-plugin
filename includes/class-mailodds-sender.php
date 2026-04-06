@@ -102,8 +102,9 @@ class MailOdds_Sender {
 
 		if ( is_wp_error( $result ) ) {
 			// Log the failure but allow WordPress to handle it
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'MailOdds deliver failed: ' . $result->get_error_message() );
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- debug logging
+				error_log( sprintf( '[MailOdds] deliver failed: %s', $result->get_error_message() ) );
 			}
 
 			// Fall back to default wp_mail if failover is enabled

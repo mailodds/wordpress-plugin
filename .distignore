@@ -1,0 +1,33 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github
+
+# CI/CD and testing
+ci
+tests
+phpunit.xml
+patchwork.json
+.wp-env.json
+
+# Dependencies (dev only)
+composer.json
+composer.lock
+node_modules
+vendor
+
+# Documentation (GitHub only)
+README.md
+UPGRADE.md
+
+# Unreleased v3.0 features (not wired into mailodds.php yet)
+includes/class-mailodds-domains.php
+includes/class-mailodds-deliverability.php
+includes/class-mailodds-monitoring.php
+includes/class-mailodds-spam-check.php
+includes/class-mailodds-engagement.php
+includes/class-mailodds-lists.php
+includes/class-mailodds-sender.php

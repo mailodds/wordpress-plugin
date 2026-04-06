@@ -75,6 +75,11 @@ class AdminTest extends MailOdds_TestCase {
 		global $wpdb;
 		$wpdb = Mockery::mock();
 		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )
+			->twice()
+			->andReturnUsing( function ( $query, $value ) {
+				return str_replace( '%s', "'" . $value . "'", $query );
+			} );
 		$wpdb->shouldReceive( 'query' )
 			->twice()
 			->andReturn( true );

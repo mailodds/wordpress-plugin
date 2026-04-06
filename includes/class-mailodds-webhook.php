@@ -38,6 +38,7 @@ class MailOdds_Webhook {
 		register_rest_route( 'mailodds/v1', '/webhook', array(
 			'methods'             => 'POST',
 			'callback'            => array( $this, 'handle_webhook' ),
+			// phpcs:ignore WordPress.Security.PermissionCallback -- Public endpoint; auth is handled via HMAC-SHA256 signature verification in handle_webhook().
 			'permission_callback' => '__return_true',
 		) );
 	}
@@ -68,10 +69,18 @@ class MailOdds_Webhook {
 		}
 
 		$payload = $request->get_json_params();
-		$event   = isset( $payload['event'] ) ? $payload['event'] : '';
+
+		if ( ! is_array( $payload ) ) {
+			return new WP_Error( 'mailodds_webhook_bad_payload', __( 'Invalid payload.', 'mailodds-email-validation' ), array( 'status' => 400 ) );
+		}
+
+		$event = isset( $payload['event'] ) ? sanitize_text_field( $payload['event'] ) : '';
 
 		if ( 'job.completed' === $event && isset( $payload['job_id'] ) ) {
-			$this->process_job_completion( $payload['job_id'] );
+			$job_id = sanitize_text_field( $payload['job_id'] );
+			if ( ! empty( $job_id ) ) {
+				$this->process_job_completion( $job_id );
+			}
 		}
 
 		return rest_ensure_response( array( 'received' => true ) );

@@ -31,6 +31,16 @@ MailOdds Email Validation integrates the [MailOdds API](https://mailodds.com) in
 * Test mode with special test domains (no credits consumed)
 * Graceful degradation: if the API is unreachable, forms still work
 
+**Third-Party Services:**
+
+This plugin connects to the following external services:
+
+* **MailOdds API** ([mailodds.com](https://mailodds.com)) - Email validation, suppression lists, bulk jobs, and telemetry. Email addresses entered in forms, registration, and checkout are sent to the MailOdds API for validation. An API key is required.
+  [Terms of Service](https://mailodds.com/terms) | [Privacy Policy](https://mailodds.com/privacy)
+
+* **GitHub API** ([api.github.com](https://api.github.com)) - Used solely for checking plugin updates when installed from GitHub. No user data is transmitted.
+  [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement)
+
 **Supported Form Plugins:**
 
 * WordPress core registration
@@ -94,11 +104,23 @@ Use an API key with the `mo_test_` prefix to enable test mode. Test mode:
 
 == Screenshots ==
 
-1. Settings page - Configure API key, validation depth, block threshold, and form integrations.
-2. WooCommerce checkout - Invalid email blocked with user-friendly error message.
-3. Dashboard widget - 7-day validation stats at a glance.
-4. Bulk validation - Validate all existing WordPress users in batches.
-5. WP-CLI - Validate emails and manage users from the command line.
+Screenshots will be available after the first WordPress.org release.
+
+== Privacy ==
+
+This plugin sends email addresses to the MailOdds API (api.mailodds.com) for validation when:
+
+* A user registers on your WordPress site
+* A customer checks out on WooCommerce
+* A visitor submits a form (WPForms, Gravity Forms, Contact Form 7)
+* You run bulk validation on existing users
+* The weekly cron job validates unvalidated users
+
+Validation results are cached locally as WordPress transients for 24 hours. Per-user validation status is stored as user meta. No personally identifiable information beyond the email address is sent to the API.
+
+When installed from GitHub, the plugin checks api.github.com for new releases every 12 hours. No user data is included in these requests.
+
+See the [MailOdds Privacy Policy](https://mailodds.com/privacy) for full details on how email data is processed.
 
 == Frequently Asked Questions ==
 
@@ -152,7 +174,7 @@ Use an API key with the `mo_test_` prefix. Test mode does not consume credits an
 
 = How does the plugin update? =
 
-The plugin checks GitHub releases for new versions. When an update is available, it appears in Dashboard > Updates like any other plugin. Click Update to install. No wordpress.org account is needed.
+If installed from WordPress.org, updates are delivered through the standard WordPress update system. If installed from GitHub, the plugin checks GitHub releases for new versions. Either way, updates appear in Dashboard > Updates like any other plugin.
 
 = How many credits does it use? =
 

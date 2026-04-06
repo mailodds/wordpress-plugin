@@ -246,11 +246,210 @@ The plugin branches on the `action` field from the API response:
 | `reject` | Invalid or disposable | Block form submission |
 | `retry_later` | Temporary failure | Allow (fail-open) |
 
+## WP-CLI Commands Reference
+
+All commands live under the `wp mailodds` namespace. An API key must be configured in **Settings > MailOdds** before running any command that contacts the API.
+
+### wp mailodds validate
+
+Validate a single email address.
+
+```bash
+wp mailodds validate <email> [--depth=<depth>] [--skip-cache] [--format=<format>]
+```
+
+| Option | Values | Default | Description |
+|--------|--------|---------|-------------|
+| `<email>` | Any email address | Required | The email to validate |
+| `--depth` | `standard`, `enhanced` | `enhanced` | Standard skips SMTP checks; enhanced does full verification |
+| `--skip-cache` | Flag | Off | Bypass the 24-hour transient cache |
+| `--format` | `table`, `json`, `yaml` | `table` | Output format |
+
+Examples:
+
+```bash
+wp mailodds validate user@example.com
+wp mailodds validate user@example.com --depth=standard --format=json
+wp mailodds validate user@example.com --skip-cache
+```
+
+### wp mailodds bulk
+
+Bulk validate unvalidated WordPress users in batches. Only processes users without a `_mailodds_status` user meta entry.
+
+```bash
+wp mailodds bulk [--batch=<size>] [--limit=<limit>]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--batch` | `50` | Number of users per API batch request |
+| `--limit` | `0` | Maximum total users to validate (0 = all unvalidated users) |
+
+Examples:
+
+```bash
+wp mailodds bulk
+wp mailodds bulk --batch=100 --limit=500
+```
+
+### wp mailodds status
+
+Show plugin configuration and statistics. No API call required (reads local options).
+
+```bash
+wp mailodds status
+```
+
+Displays: version, API key status, test mode, depth, block threshold, active policy, cron state, active integrations, today's validation count, and total validated users.
+
+### wp mailodds suppression
+
+Manage your account's suppression list.
+
+```bash
+wp mailodds suppression list [--type=<type>] [--page=<page>] [--per-page=<n>]
+wp mailodds suppression add <email> [--type=<type>]
+wp mailodds suppression remove <email>
+wp mailodds suppression check <email>
+wp mailodds suppression stats
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List suppression entries with optional type filter and pagination |
+| `add` | Add an email to the suppression list |
+| `remove` | Remove an email from the suppression list |
+| `check` | Check whether an email is currently suppressed |
+| `stats` | Show suppression totals broken down by type |
+
+Options for `list`:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--type` | All | Filter by type: `hard_bounce`, `complaint`, `unsubscribe`, `manual` |
+| `--page` | `1` | Page number |
+| `--per-page` | `25` | Results per page |
+
+Options for `add`:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--type` | `manual` | Suppression type: `hard_bounce`, `complaint`, `unsubscribe`, `manual` |
+
+Examples:
+
+```bash
+wp mailodds suppression list --type=hard_bounce --per-page=50
+wp mailodds suppression add spam@example.com --type=complaint
+wp mailodds suppression remove spam@example.com
+wp mailodds suppression check user@example.com
+wp mailodds suppression stats
+```
+
+### wp mailodds jobs
+
+Manage bulk validation jobs (async API jobs for large batches).
+
+```bash
+wp mailodds jobs list [--page=<page>]
+wp mailodds jobs create
+wp mailodds jobs status <job_id>
+wp mailodds jobs results <job_id> [--page=<page>]
+wp mailodds jobs cancel <job_id>
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List all validation jobs (20 per page) |
+| `create` | Create a new job from all unvalidated WordPress users |
+| `status` | Show full JSON status of a specific job |
+| `results` | Show paginated results of a completed job |
+| `cancel` | Cancel a running job |
+
+Examples:
+
+```bash
+wp mailodds jobs list
+wp mailodds jobs create
+wp mailodds jobs status abc-123-def
+wp mailodds jobs results abc-123-def --page=2
+wp mailodds jobs cancel abc-123-def
+```
+
+### wp mailodds policies
+
+Manage validation policies.
+
+```bash
+wp mailodds policies list
+wp mailodds policies create <name> [--preset=<preset>]
+wp mailodds policies test <email> <policy_id>
+wp mailodds policies delete <policy_id>
+```
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List all policies with ID, name, and rule count |
+| `create` | Create a new policy (optionally from a preset) |
+| `test` | Test a policy against a specific email address |
+| `delete` | Delete a policy by ID |
+
+Options for `create`:
+
+| Option | Values | Description |
+|--------|--------|-------------|
+| `--preset` | `strict`, `permissive`, `smtp_required` | Create from a predefined rule set instead of an empty policy |
+
+Examples:
+
+```bash
+wp mailodds policies list
+wp mailodds policies create "My Policy"
+wp mailodds policies create "Strict Rules" --preset=strict
+wp mailodds policies test user@example.com 42
+wp mailodds policies delete 42
+```
+
+## Multisite
+
+The plugin supports WordPress Multisite installations. Here is what you need to know:
+
+### Activation mode
+
+The plugin can be activated **per-site** (from each site's Plugins screen) or **network-activated** (from Network Admin > Plugins). Both modes work. Network activation makes the plugin active on every site in the network, but each site still manages its own configuration independently.
+
+### Per-site configuration
+
+All plugin data is stored in each site's `wp_options` table, not in a network-wide table:
+
+- **API key** (`mailodds_api_key`) is per-site. Each site in the network can use a different MailOdds account or API key. There is no network-wide API key option.
+- **Settings** (depth, threshold, integrations, policy, cron) are per-site. Changing settings on one site does not affect other sites.
+- **Transient cache** uses WordPress transients, which are stored in `wp_options` (or the object cache if one is configured). Because `wp_options` is per-site in Multisite, cached validation results are isolated between sites.
+- **User meta** (`_mailodds_status`, `_mailodds_action`, `_mailodds_validated_at`) is stored in the shared `wp_usermeta` table. If the same user exists on multiple sites, validation results from one site are visible to all sites in the network.
+
+### Cron jobs
+
+Cron events (`mailodds_cron_validate_users`, `mailodds_cron_check_job`) are per-site. If cron is enabled on multiple sites, each site runs its own independent weekly validation schedule. There is no cross-site coordination.
+
+### Suppression list
+
+The suppression list is managed via the MailOdds API and is scoped to the API key. Sites sharing the same API key share the same suppression list. Sites with different API keys have independent suppression lists.
+
+### Auto-updates
+
+The GitHub updater checks for new releases per-site (using a transient). On Multisite with network activation, WordPress handles updates at the network level. The updater's `pre_set_site_transient_update_plugins` filter works correctly in both modes.
+
 ## Requirements
 
 - WordPress 5.9+
 - PHP 7.4+
+- PHP `curl` extension (used by WordPress HTTP API)
 - MailOdds API key ([get one free](https://mailodds.com/register))
+
+## Upgrade
+
+See [UPGRADE.md](UPGRADE.md) for version upgrade instructions, migration notes, and breaking change policy.
 
 ## Uninstall
 
